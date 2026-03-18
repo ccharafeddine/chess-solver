@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root,
+[data-theme="light"] {
+  --bg: #d4c4a8;
+  --bg-card: #e8dcc8;
+  --border: #c4b498;
+  --accent: #7b6b4e;
+  --accent-hover: #5e4f38;
+  --text: #3a3226;
+  --text-dim: #8a7d6b;
+  --text-heading: #2a2218;
+  --eval-winning: #2e7d32;
+  --eval-slight-advantage: #558b2f;
+  --eval-equal: #7a7060;
+  --eval-slight-disadvantage: #e65100;
+  --eval-losing: #c62828;
+  --warning: #b71c1c;
+  --warning-bg: rgba(183, 28, 28, 0.08);
+  --opening-text: #5d4e00;
+  --opening-bg: rgba(123, 107, 78, 0.1);
+  --star: #b8960c;
+  --hover-bg: rgba(123, 107, 78, 0.08);
+  --active-bg: rgba(123, 107, 78, 0.15);
+  --eval-bar-dark: #3a3226;
+  --eval-bar-light: #f5f0e8;
+  --piece-white: #fff;
+  --piece-white-shadow: #555;
+  --piece-black: #1a1a1a;
+  --toggle-bg: #c4b498;
+  --toggle-knob: #fff;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1c24;
+  --bg-card: #22252f;
+  --border: #333849;
+  --accent: #8b9ad4;
+  --accent-hover: #a0addf;
+  --text: #bfc3d0;
+  --text-dim: #6b7085;
+  --text-heading: #e0e3ec;
+  --eval-winning: #66bb6a;
+  --eval-slight-advantage: #9ccc65;
+  --eval-equal: #8a8e9a;
+  --eval-slight-disadvantage: #ffa726;
+  --eval-losing: #ef5350;
+  --warning: #ef5350;
+  --warning-bg: rgba(239, 83, 80, 0.1);
+  --opening-text: #f0d060;
+  --opening-bg: rgba(240, 208, 96, 0.08);
+  --star: #f0d060;
+  --hover-bg: rgba(139, 154, 212, 0.06);
+  --active-bg: rgba(139, 154, 212, 0.15);
+  --eval-bar-dark: #333;
+  --eval-bar-light: #e0e0e0;
+  --piece-white: #e8e8e8;
+  --piece-white-shadow: #222;
+  --piece-black: #1a1a1a;
+  --toggle-bg: #333849;
+  --toggle-knob: #e0e3ec;
+}
+
+body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.2s, color 0.2s;
+}
+
+:root {
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+#root {
+  min-height: 100vh;
+}
