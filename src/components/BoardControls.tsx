@@ -5,7 +5,6 @@ interface BoardControlsProps {
   onFlipBoard: () => void;
   onReset: () => void;
   onClear: () => void;
-  onReanalyze: () => void;
 }
 
 export default function BoardControls({
@@ -15,7 +14,6 @@ export default function BoardControls({
   onFlipBoard,
   onReset,
   onClear,
-  onReanalyze,
 }: BoardControlsProps) {
   return (
     <div className="board-controls">
@@ -39,10 +37,6 @@ export default function BoardControls({
         {orientation === 'white' ? 'White' : 'Black'} POV
       </button>
 
-      <button className="control-btn" onClick={onReanalyze} title="Re-analyze position">
-        Analyze
-      </button>
-
       <button className="control-btn" onClick={onReset}>
         Reset
       </button>
@@ -50,8 +44,6 @@ export default function BoardControls({
       <button className="control-btn" onClick={onClear}>
         Clear
       </button>
-
-      {/* Analyzing indicator moved to AnalysisPanel header */}
     </div>
   );
 }

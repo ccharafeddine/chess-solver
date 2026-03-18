@@ -103,13 +103,30 @@ function movePiece(fen: string, from: string, to: string): string {
   const piece = expanded[fromRank][fromFile];
   if (piece === '.') return fen;
 
-  const fromRow = expanded[fromRank].split('');
-  fromRow[fromFile] = '.';
-  expanded[fromRank] = fromRow.join('');
+  // Clear source square
+  const srcRow = expanded[fromRank].split('');
+  srcRow[fromFile] = '.';
+  expanded[fromRank] = srcRow.join('');
 
-  const toRow = expanded[toRank].split('');
-  toRow[toFile] = piece;
-  expanded[toRank] = toRow.join('');
+  // Place piece on destination
+  const destRow = expanded[toRank].split('');
+  destRow[toFile] = piece;
+  expanded[toRank] = destRow.join('');
+
+  // Detect castling: king moves exactly 2 files on the same rank
+  if ((piece === 'K' || piece === 'k') && fromRank === toRank && Math.abs(toFile - fromFile) === 2) {
+    const castleRow = expanded[fromRank].split('');
+    if (toFile > fromFile) {
+      // Kingside: move rook from h-file (7) to f-file (5)
+      castleRow[7] = '.';
+      castleRow[5] = piece === 'K' ? 'R' : 'r';
+    } else {
+      // Queenside: move rook from a-file (0) to d-file (3)
+      castleRow[0] = '.';
+      castleRow[3] = piece === 'K' ? 'R' : 'r';
+    }
+    expanded[fromRank] = castleRow.join('');
+  }
 
   const boardPart = expanded.map(compressRow).join('/');
   return buildFen(boardPart, parts[1]);
@@ -246,6 +263,7 @@ export default function App() {
           san: uciToSan(analysisFen, line.move),
           from: line.from,
           to: line.to,
+          promotion: line.promotion,
           evaluation: line.evaluation,
           mate: line.mate,
           depth: line.depth,
@@ -335,6 +353,31 @@ export default function App() {
     setAnalysisLines([]);
   };
 
+  const handleMakeMove = (from: string, to: string, promotion?: string) => {
+    let newFen = movePiece(fen, from, to);
+    // Handle promotion: replace the pawn with the promoted piece
+    if (promotion) {
+      const toFile = to.charCodeAt(0) - 97;
+      const toRank = 8 - parseInt(to[1]);
+      const parts = newFen.split(' ');
+      const rows = parts[0].split('/');
+      const expanded = rows.map(expandRow);
+      const row = expanded[toRank].split('');
+      // Determine color from current turn
+      row[toFile] = turn === 'w' ? promotion.toUpperCase() : promotion.toLowerCase();
+      expanded[toRank] = row.join('');
+      const boardPart = expanded.map(compressRow).join('/');
+      newFen = buildFen(boardPart, parts[1]);
+    }
+    // Switch turn after making a move
+    const newTurn = turn === 'w' ? 'b' : 'w';
+    const parts = newFen.split(' ');
+    const boardPart = parts[0];
+    setTurn(newTurn);
+    setFen(buildFen(boardPart, newTurn));
+    setHighlightSquares({ from, to });
+  };
+
   const handleFlipBoard = () => {
     setOrientation((o) => (o === 'white' ? 'black' : 'white'));
   };
@@ -390,7 +433,6 @@ export default function App() {
             onFlipBoard={handleFlipBoard}
             onReset={handleReset}
             onClear={handleClear}
-            onReanalyze={handleReanalyze}
           />
           <PieceSelector
             onSelectPiece={setSelectedPiece}
@@ -405,7 +447,8 @@ export default function App() {
             isAnalyzing={isAnalyzing}
             turn={turn}
             positionWarning={positionWarning}
-            onRetry={handleReanalyze}
+            onRefresh={handleReanalyze}
+            onMakeMove={handleMakeMove}
             onHighlightMove={(from, to) => setHighlightSquares({ from, to })}
             onClearHighlight={() => setHighlightSquares(null)}
           />

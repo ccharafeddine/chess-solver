@@ -6,6 +6,7 @@ export interface AnalysisLineDisplay {
   san: string;
   from: string;
   to: string;
+  promotion?: string;
   evaluation: number;
   mate: number | null;
   depth: number;
@@ -19,7 +20,8 @@ interface AnalysisPanelProps {
   isAnalyzing: boolean;
   turn: 'w' | 'b';
   positionWarning: string | null;
-  onRetry: () => void;
+  onRefresh: () => void;
+  onMakeMove: (from: string, to: string, promotion?: string) => void;
   onHighlightMove: (from: string, to: string) => void;
   onClearHighlight: () => void;
 }
@@ -67,7 +69,8 @@ export default function AnalysisPanel({
   isAnalyzing,
   turn,
   positionWarning,
-  onRetry,
+  onRefresh,
+  onMakeMove,
   onHighlightMove,
   onClearHighlight,
 }: AnalysisPanelProps) {
@@ -86,6 +89,9 @@ export default function AnalysisPanel({
         <div className="analysis-header-right">
           {isAnalyzing && <span className="analyzing-spinner" />}
           {depth > 0 && <span className="depth-badge">Depth {depth}</span>}
+          <button className="refresh-btn" onClick={onRefresh} title="Refresh analysis">
+            &#8635;
+          </button>
         </div>
       </div>
 
@@ -93,7 +99,7 @@ export default function AnalysisPanel({
         <div className="position-warning">
           <span>{positionWarning}</span>
           {!isAnalyzing && lines.length === 0 && (
-            <button className="retry-btn" onClick={onRetry}>Retry</button>
+            <button className="retry-btn" onClick={onRefresh}>Retry</button>
           )}
         </div>
       )}
@@ -121,7 +127,8 @@ export default function AnalysisPanel({
           return (
             <div
               key={line.move}
-              className="analysis-line"
+              className="analysis-line analysis-line-clickable"
+              onClick={() => onMakeMove(line.from, line.to, line.promotion)}
               onMouseEnter={() => onHighlightMove(line.from, line.to)}
               onMouseLeave={onClearHighlight}
             >
