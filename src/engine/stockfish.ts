@@ -37,7 +37,7 @@ export class StockfishEngine {
   private createWorker(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       try {
-        this.worker = new Worker('/stockfish.js');
+        this.worker = new Worker('./stockfish.js');
       } catch (err) {
         reject(err);
         return;
@@ -119,7 +119,7 @@ export class StockfishEngine {
     this.lastStreamDepth = 0;
 
     this.send('ucinewgame');
-    this.send('setoption name MultiPV value 5');
+    this.send('setoption name MultiPV value 10');
     this.send(`position fen ${fen}`);
     this.send('go movetime 1500');
 
@@ -227,8 +227,8 @@ export class StockfishEngine {
 
     this.lines.set(multipv, analysisLine);
 
-    // Stream intermediate results once we have all 5 lines for a new depth
-    if (depth > this.lastStreamDepth && this.lines.size >= 5) {
+    // Stream intermediate results once we have all lines for a new depth
+    if (depth > this.lastStreamDepth && this.lines.size >= 10) {
       const allSameDepth = Array.from(this.lines.values()).every(l => l.depth >= depth);
       if (allSameDepth) {
         this.lastStreamDepth = depth;

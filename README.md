@@ -1,47 +1,60 @@
 # Chess Solver
 
-A browser-based chess position analyzer powered by Stockfish 18 WASM.
+A desktop chess analysis tool powered by Stockfish 18. Set up any board position and get the top 10 engine-recommended moves with evaluations, tactical motifs, and principal variations.
 
 ## Features
 
-- **Interactive board editing** - Click to place, move, or remove pieces with a visual piece palette
-- **Stockfish 18 WASM engine** - Runs entirely in-browser via Web Worker, no server required
-- **Top 5 move analysis** - MultiPV evaluation with centipawn scores and mate detection
-- **Opening recognition** - Identifies 100+ named openings from the board position
-- **Tactical motif detection** - Flags forks, pins, skewers, discovered attacks, checks, captures, and promotions
-- **Responsive design** - Dark theme UI that works on desktop, tablet, and mobile
+- Drag-and-drop piece movement with click-to-place editing
+- Stockfish 18 analysis with streaming results (moves appear instantly)
+- Top 10 move recommendations with eval bars and depth info
+- Tactical motif detection (forks, pins, skewers, checks, etc.)
+- Opening name recognition
+- Checkmate, stalemate, and draw detection
+- Light/dark theme toggle
+- Board flip and turn switching
 
-## Getting Started
+## Quick Start (Development)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Opens the app in your browser at `http://localhost:5173`.
+
+## Build Standalone Desktop App
+
+```bash
+npm install
+npm run electron
+```
+
+Builds the production bundle and launches it as a standalone Electron desktop app.
+
+## Build Portable .exe
+
+```bash
+npm run dist
+```
+
+Creates a portable Windows executable in the `release/` folder that can be run without installation.
 
 ## How to Use
 
 1. The board starts with the standard chess position. Stockfish begins analyzing automatically.
 2. Select a piece from the palette below the board, then click any square to place it.
-3. Use the **Remove** button to erase pieces from the board.
+3. Use **Remove** to erase pieces from the board.
 4. Toggle **White/Black to move** to change the side to analyze.
-5. The analysis panel on the right shows the top 5 engine moves with evaluations, tactical motifs, and the principal variation for each line.
-6. Hover over any analysis line to highlight the move on the board.
-7. Use **Reset** to restore the starting position or **Clear** to empty the board.
+5. The analysis panel shows the top 10 engine moves with evaluations, tactical motifs, and principal variations.
+6. Click any analysis line to play that move on the board.
+7. Hover over a line to highlight the move on the board.
+8. Use **Reset** to restore the starting position or **Clear** to empty the board.
 
 ## Tech Stack
 
 - React 19 + TypeScript
 - Vite
-- [react-chessboard](https://www.npmjs.com/package/react-chessboard)
-- [chess.js](https://www.npmjs.com/package/chess.js)
-- [Stockfish 18 WASM](https://www.npmjs.com/package/stockfish) (lite single-threaded)
-
-## Build for Production
-
-```bash
-npm run build
-```
-
-Output goes to `dist/`. Serve with any static file server.
+- Stockfish 18 WASM (lite single-threaded build)
+- chess.js for move validation
+- react-chessboard for the board UI
+- Electron for desktop packaging

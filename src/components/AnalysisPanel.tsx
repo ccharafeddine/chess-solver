@@ -48,7 +48,7 @@ const TACTIC_COLORS: Record<string, string> = {
   discovered_attack: '#1abc9c',
 };
 
-const RANK_LABELS = ['Best', '2nd', '3rd', '4th', '5th'];
+const RANK_LABELS = ['Best', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
 function SkeletonLines() {
   return (
