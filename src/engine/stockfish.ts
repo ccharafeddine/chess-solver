@@ -11,11 +11,12 @@ export interface AnalysisLine {
   pv: string;
 }
 
-export type AnalysisCallback = (lines: AnalysisLine[]) => void;
+export type AnalysisCallback = (lines: AnalysisLine[], isFinal: boolean) => void;
 
 export class StockfishEngine {
   private worker: Worker | null = null;
   private lines = new Map<number, AnalysisLine>();
+  private lastStreamDepth = 0;
   private callback: AnalysisCallback | null = null;
   private ready = false;
   private timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -84,7 +85,7 @@ export class StockfishEngine {
       this.restart().then(() => {
         this.startAnalysis(fen, callback);
       }).catch(() => {
-        callback([]);
+        callback([], true);
       });
       return;
     }
@@ -105,7 +106,7 @@ export class StockfishEngine {
       this.pendingAnalysis = null;
       this.settling = false;
       if (pending) {
-        pending.callback([]);
+        pending.callback([], true);
       }
       this.restart();
     }, 3000);
@@ -115,21 +116,22 @@ export class StockfishEngine {
     const id = this.analysisId;
     this.callback = callback;
     this.lines.clear();
+    this.lastStreamDepth = 0;
 
     this.send('ucinewgame');
     this.send('setoption name MultiPV value 5');
     this.send(`position fen ${fen}`);
-    this.send('go movetime 3000');
+    this.send('go movetime 1500');
 
-    // Safety timeout: if Stockfish doesn't respond in 5s, restart.
+    // Safety timeout: if Stockfish doesn't respond in 4s, restart.
     this.timeoutId = setTimeout(() => {
       if (this.analysisId !== id) return;
       console.warn('[Stockfish] Analysis timeout, restarting...');
       const cb = this.callback;
       this.callback = null;
-      if (cb) cb([]);
+      if (cb) cb([], true);
       this.restart();
-    }, 5000);
+    }, 4000);
   }
 
   stop(): void {
@@ -224,6 +226,23 @@ export class StockfishEngine {
     };
 
     this.lines.set(multipv, analysisLine);
+
+    // Stream intermediate results once we have all 5 lines for a new depth
+    if (depth > this.lastStreamDepth && this.lines.size >= 5) {
+      const allSameDepth = Array.from(this.lines.values()).every(l => l.depth >= depth);
+      if (allSameDepth) {
+        this.lastStreamDepth = depth;
+        this.streamResult();
+      }
+    }
+  }
+
+  private streamResult(): void {
+    if (!this.callback) return;
+    const sorted = Array.from(this.lines.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([, line]) => line);
+    this.callback(sorted, false);
   }
 
   private extractInt(line: string, token: string): number | null {
@@ -241,6 +260,6 @@ export class StockfishEngine {
 
     const cb = this.callback;
     this.callback = null;
-    cb(sorted);
+    cb(sorted, true);
   }
 }

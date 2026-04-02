@@ -20,6 +20,7 @@ interface AnalysisPanelProps {
   isAnalyzing: boolean;
   turn: 'w' | 'b';
   positionWarning: string | null;
+  gameEndMessage: string | null;
   onRefresh: () => void;
   onMakeMove: (from: string, to: string, promotion?: string) => void;
   onHighlightMove: (from: string, to: string) => void;
@@ -69,6 +70,7 @@ export default function AnalysisPanel({
   isAnalyzing,
   turn,
   positionWarning,
+  gameEndMessage,
   onRefresh,
   onMakeMove,
   onHighlightMove,
@@ -82,18 +84,24 @@ export default function AnalysisPanel({
     <div className="analysis-panel">
       <div className="analysis-header">
         <h2>
-          {lines.length > 0 || isAnalyzing
-            ? `Top moves for ${sideLabel}`
-            : 'Analysis'}
+          {gameEndMessage
+            ? 'Game Over'
+            : lines.length > 0 || isAnalyzing
+              ? `Top moves for ${sideLabel}`
+              : 'Analysis'}
         </h2>
         <div className="analysis-header-right">
-          {isAnalyzing && <span className="analyzing-spinner" />}
+          {isAnalyzing && lines.length === 0 && <span className="analyzing-spinner" />}
           {depth > 0 && <span className="depth-badge">Depth {depth}</span>}
           <button className="refresh-btn" onClick={onRefresh} title="Refresh analysis">
             &#8635;
           </button>
         </div>
       </div>
+
+      {gameEndMessage && (
+        <div className="game-end-bar">{gameEndMessage}</div>
+      )}
 
       {positionWarning && (
         <div className="position-warning">

@@ -55,6 +55,21 @@ export function uciToSan(fen: string, uciMove: string): string {
   }
 }
 
+export function detectGameEnd(fen: string): string | null {
+  try {
+    const chess = new Chess(fen);
+    if (chess.isCheckmate()) {
+      const loser = fen.split(' ')[1];
+      return loser === 'w' ? 'Checkmate - Black wins' : 'Checkmate - White wins';
+    }
+    if (chess.isStalemate()) return 'Stalemate - Draw';
+    if (chess.isInsufficientMaterial()) return 'Draw - Insufficient material';
+  } catch {
+    // Position may be invalid for chess.js
+  }
+  return null;
+}
+
 export function isKingInCheck(fen: string, side: 'w' | 'b'): boolean {
   const board = expandFenToGrid(fen);
   if (!board) return false;

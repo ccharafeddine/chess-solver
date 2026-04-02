@@ -6,7 +6,7 @@ import AnalysisPanel from './components/AnalysisPanel';
 import type { AnalysisLineDisplay } from './components/AnalysisPanel';
 import { StockfishEngine } from './engine/stockfish';
 import type { AnalysisLine } from './engine/stockfish';
-import { uciToSan, isKingInCheck } from './engine/utils';
+import { uciToSan, isKingInCheck, detectGameEnd } from './engine/utils';
 import { detectTactics } from './engine/tactics';
 import { lookupOpening } from './engine/openings';
 import './App.css';
@@ -198,6 +198,7 @@ export default function App() {
   const [boardWidth, setBoardWidth] = useState(computeBoardWidth);
   const [positionWarning, setPositionWarning] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
+  const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('chess-solver-theme');
     return saved === 'dark' ? 'dark' : 'light';
@@ -242,16 +243,14 @@ export default function App() {
 
       console.log('[App] Analyzing FEN:', analysisFen);
 
-      engineRef.current.analyze(analysisFen, (lines: AnalysisLine[]) => {
+      engineRef.current.analyze(analysisFen, (lines: AnalysisLine[], isFinal: boolean) => {
         // Ignore results if FEN has changed since we started
         if (analysisFenRef.current !== analysisFen) {
           console.log('[App] Stale result, ignoring');
           return;
         }
 
-        console.log('[App] Got', lines.length, 'lines');
-
-        if (lines.length === 0) {
+        if (isFinal && lines.length === 0) {
           setAnalysisLines([]);
           setPositionWarning('Engine could not analyze this position. Try adjusting the board.');
           setIsAnalyzing(false);
@@ -273,7 +272,9 @@ export default function App() {
 
         setAnalysisLines(displayLines);
         setOpeningName(lookupOpening(analysisFen));
-        setIsAnalyzing(false);
+        if (isFinal) {
+          setIsAnalyzing(false);
+        }
       });
     },
     [engineReady]
@@ -287,6 +288,15 @@ export default function App() {
     // Immediately invalidate any in-flight analysis so stale callbacks
     // from a previous FEN are rejected before the debounce fires.
     analysisFenRef.current = fen;
+
+    // Check for checkmate, stalemate, or draw
+    const gameEnd = detectGameEnd(fen);
+    setGameEndMessage(gameEnd);
+    if (gameEnd) {
+      setPositionWarning(null);
+      setIsAnalyzing(false);
+      return;
+    }
 
     // Check if the non-moving side's king is in check (illegal position)
     const movingSide = fen.split(' ')[1] as 'w' | 'b';
@@ -307,7 +317,7 @@ export default function App() {
       if (!illegal) {
         runAnalysis(fen);
       }
-    }, 300);
+    }, 150);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -447,6 +457,7 @@ export default function App() {
             isAnalyzing={isAnalyzing}
             turn={turn}
             positionWarning={positionWarning}
+            gameEndMessage={gameEndMessage}
             onRefresh={handleReanalyze}
             onMakeMove={handleMakeMove}
             onHighlightMove={(from, to) => setHighlightSquares({ from, to })}
