@@ -13,6 +13,22 @@ export interface AnalysisLine {
 
 export type AnalysisCallback = (lines: AnalysisLine[], isFinal: boolean) => void;
 
+export interface AnalyzeOptions {
+  multiPV?: number;
+  movetimeMs?: number;
+}
+
+const DEFAULT_MULTIPV = 3;
+const DEFAULT_MOVETIME_MS = 3000;
+const HASH_MB = 256;
+
+function pickThreadCount(): number {
+  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 0;
+  if (!cores || cores < 2) return 1;
+  // Leave one core for UI/main thread; clamp to a sane upper bound.
+  return Math.min(Math.max(cores - 1, 1), 8);
+}
+
 export class StockfishEngine {
   private worker: Worker | null = null;
   private lines = new Map<number, AnalysisLine>();
@@ -22,10 +38,15 @@ export class StockfishEngine {
   private timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
   private settleTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
   private analysisId = 0;
+  // 0 = unknown; first analyze() will always send the MultiPV setoption.
+  private currentMultiPV = 0;
+  private expectedLines = DEFAULT_MULTIPV;
 
   private pendingAnalysis: {
     fen: string;
     callback: AnalysisCallback;
+    multiPV: number;
+    movetimeMs: number;
     id: number;
   } | null = null;
   private settling = false;
@@ -53,8 +74,15 @@ export class StockfishEngine {
         if (msg.includes('uciok')) {
           this.worker!.removeEventListener('message', onReady);
           this.worker!.addEventListener('message', this.onMessage);
+
+          // Persistent engine config — set once per worker lifetime.
+          const threads = pickThreadCount();
+          this.send(`setoption name Threads value ${threads}`);
+          this.send(`setoption name Hash value ${HASH_MB}`);
+          this.send('ucinewgame');
+
           this.ready = true;
-          console.log('[Stockfish] Engine ready');
+          console.log(`[Stockfish] Engine ready (Threads=${threads}, Hash=${HASH_MB}MB)`);
           resolve();
         }
       };
@@ -73,17 +101,21 @@ export class StockfishEngine {
     this.ready = false;
     this.settling = false;
     this.pendingAnalysis = null;
+    this.currentMultiPV = 0;
     this.clearAllTimeouts();
     await this.createWorker();
   }
 
-  analyze(fen: string, callback: AnalysisCallback): void {
+  analyze(fen: string, callback: AnalysisCallback, options: AnalyzeOptions = {}): void {
+    const multiPV = Math.max(1, options.multiPV ?? DEFAULT_MULTIPV);
+    const movetimeMs = Math.max(100, options.movetimeMs ?? DEFAULT_MOVETIME_MS);
+
     this.clearAllTimeouts();
     this.callback = null;
 
     if (!this.worker || !this.ready) {
       this.restart().then(() => {
-        this.startAnalysis(fen, callback);
+        this.startAnalysis(fen, callback, multiPV, movetimeMs);
       }).catch(() => {
         callback([], true);
       });
@@ -91,7 +123,7 @@ export class StockfishEngine {
     }
 
     const id = ++this.analysisId;
-    this.pendingAnalysis = { fen, callback, id };
+    this.pendingAnalysis = { fen, callback, multiPV, movetimeMs, id };
 
     if (!this.settling) {
       this.settling = true;
@@ -112,18 +144,27 @@ export class StockfishEngine {
     }, 3000);
   }
 
-  private startAnalysis(fen: string, callback: AnalysisCallback): void {
+  private startAnalysis(
+    fen: string,
+    callback: AnalysisCallback,
+    multiPV: number,
+    movetimeMs: number
+  ): void {
     const id = this.analysisId;
     this.callback = callback;
     this.lines.clear();
     this.lastStreamDepth = 0;
+    this.expectedLines = multiPV;
 
-    this.send('ucinewgame');
-    this.send('setoption name MultiPV value 10');
+    if (multiPV !== this.currentMultiPV) {
+      this.send(`setoption name MultiPV value ${multiPV}`);
+      this.currentMultiPV = multiPV;
+    }
     this.send(`position fen ${fen}`);
-    this.send('go movetime 1500');
+    this.send(`go movetime ${movetimeMs}`);
 
-    // Safety timeout: if Stockfish doesn't respond in 4s, restart.
+    // Safety timeout: give the engine its full budget plus headroom before assuming it's stuck.
+    const watchdogMs = movetimeMs + 2500;
     this.timeoutId = setTimeout(() => {
       if (this.analysisId !== id) return;
       console.warn('[Stockfish] Analysis timeout, restarting...');
@@ -131,7 +172,7 @@ export class StockfishEngine {
       this.callback = null;
       if (cb) cb([], true);
       this.restart();
-    }, 4000);
+    }, watchdogMs);
   }
 
   stop(): void {
@@ -180,9 +221,9 @@ export class StockfishEngine {
       }
       this.settling = false;
       if (this.pendingAnalysis) {
-        const { fen, callback } = this.pendingAnalysis;
+        const { fen, callback, multiPV, movetimeMs } = this.pendingAnalysis;
         this.pendingAnalysis = null;
-        this.startAnalysis(fen, callback);
+        this.startAnalysis(fen, callback, multiPV, movetimeMs);
       }
       return;
     }
@@ -228,7 +269,7 @@ export class StockfishEngine {
     this.lines.set(multipv, analysisLine);
 
     // Stream intermediate results once we have all lines for a new depth
-    if (depth > this.lastStreamDepth && this.lines.size >= 10) {
+    if (depth > this.lastStreamDepth && this.lines.size >= this.expectedLines) {
       const allSameDepth = Array.from(this.lines.values()).every(l => l.depth >= depth);
       if (allSameDepth) {
         this.lastStreamDepth = depth;

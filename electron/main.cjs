@@ -30,7 +30,14 @@ function startServer() {
       try {
         const data = fs.readFileSync(filePath);
         const ext = path.extname(filePath).toLowerCase();
-        res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+        res.writeHead(200, {
+          'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+          // Required for SharedArrayBuffer, which the multi-threaded
+          // Stockfish build needs to spawn its pthread workers.
+          'Cross-Origin-Opener-Policy': 'same-origin',
+          'Cross-Origin-Embedder-Policy': 'require-corp',
+          'Cross-Origin-Resource-Policy': 'same-origin',
+        });
         res.end(data);
       } catch {
         res.writeHead(404);
@@ -59,6 +66,10 @@ app.whenReady().then(async () => {
 
   win.setMenuBarVisibility(false);
   win.loadURL(`http://127.0.0.1:${port}`);
+
+  if (process.env.CHESS_SOLVER_DEVTOOLS) {
+    win.webContents.openDevTools({ mode: 'detach' });
+  }
 });
 
 app.on('window-all-closed', () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Chess, type Square } from 'chess.js';
 import Board from './components/Board';
 import PieceSelector from './components/PieceSelector';
 import BoardControls from './components/BoardControls';
@@ -336,6 +337,28 @@ export default function App() {
 
   const handlePieceDrop = (from: string, to: string): boolean => {
     if (from === to) return false;
+
+    // If the drag corresponds to a legal chess move, treat it as a real game
+    // move: chess.js produces a fully correct FEN (castling/en-passant/halfmove)
+    // and we flip the turn so analysis runs for the other side. Auto-promote to
+    // queen since the drag UI has no promotion picker.
+    try {
+      const chess = new Chess(fen);
+      const move = chess.move({
+        from: from as Square,
+        to: to as Square,
+        promotion: 'q',
+      });
+      if (move) {
+        setTurn(chess.turn());
+        setFen(chess.fen());
+        setHighlightSquares({ from, to });
+        return true;
+      }
+    } catch {
+      // Position not legal for chess.js, or move not legal — fall through to edit mode.
+    }
+
     setFen(movePiece(fen, from, to));
     return true;
   };
