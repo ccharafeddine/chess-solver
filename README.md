@@ -37,7 +37,50 @@ Builds the production bundle and launches it as a standalone Electron desktop ap
 npm run dist
 ```
 
-Creates a portable Windows executable in the `release/` folder that can be run without installation.
+Outputs to `release/`:
+
+- `release/Chess Solver <version>.exe` — single-file portable build (movable to USB / other machines)
+- `release/win-unpacked/` — unpacked app folder used as the source for desktop installs
+
+### First-time build (Windows)
+
+The first `npm run dist` on a machine downloads the `winCodeSign` toolchain, which contains symbolic links into a macOS subfolder. Windows blocks symlink creation unless one of these is true:
+
+- The PowerShell session is running as **Administrator**, or
+- **Developer Mode** is enabled in Settings → Privacy & Security → For developers
+
+Run the first build under one of those conditions. Subsequent builds reuse the cached toolchain and do not need elevated privileges.
+
+## Install as a Desktop App (Windows)
+
+After running `npm run dist`, you can install the app for the current user so it has a desktop and Start Menu shortcut and survives future rebuilds:
+
+```powershell
+Copy-Item -Recurse -Force `
+  "$PWD\release\win-unpacked" `
+  "$env:LOCALAPPDATA\ChessSolver"
+
+$ws = New-Object -ComObject WScript.Shell
+foreach ($dir in @([Environment]::GetFolderPath('Desktop'), "$env:APPDATA\Microsoft\Windows\Start Menu\Programs")) {
+  $lnk = $ws.CreateShortcut("$dir\Chess Solver.lnk")
+  $lnk.TargetPath = "$env:LOCALAPPDATA\ChessSolver\Chess Solver.exe"
+  $lnk.WorkingDirectory = "$env:LOCALAPPDATA\ChessSolver"
+  $lnk.IconLocation = "$env:LOCALAPPDATA\ChessSolver\Chess Solver.exe,0"
+  $lnk.Save()
+}
+```
+
+To pin to the taskbar, right-click the desktop shortcut → **Pin to taskbar** (Windows blocks programmatic taskbar pinning).
+
+## App Icon
+
+The Windows executable uses `build/icon.ico` (a chess-knight glyph on a purple `#863bff` rounded square). To regenerate the icon from scratch — for example after editing the design — run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build/make-icon.ps1
+```
+
+This produces a multi-resolution `.ico` (256, 128, 64, 48, 32, 16) using GDI+ with no external dependencies. Rerun `npm run dist` afterwards to embed it into the executable.
 
 ## How to Use
 
@@ -53,8 +96,8 @@ Creates a portable Windows executable in the `release/` folder that can be run w
 ## Tech Stack
 
 - React 19 + TypeScript
-- Vite
-- Stockfish 18 WASM (lite single-threaded build)
+- Vite (dev server serves COOP/COEP headers so `SharedArrayBuffer` is available for the threaded Stockfish build)
+- Stockfish 18 WASM (multi-threaded build, pthread workers)
 - chess.js for move validation
 - react-chessboard for the board UI
-- Electron for desktop packaging
+- Electron for desktop runtime, electron-builder for packaging
