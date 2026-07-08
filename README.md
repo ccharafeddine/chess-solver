@@ -23,6 +23,23 @@
   <img src="https://img.shields.io/badge/Stockfish_18-WASM-863bff" alt="Stockfish 18 WASM" />
 </p>
 
+<p align="center">
+  <img src="docs/screenshot-analysis.png" width="850" alt="Chess Solver analyzing the starting position with five candidate lines" />
+</p>
+
+<table align="center">
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshot-tactics.png" alt="Tactical motif detection flagging a back-rank checkmate" />
+      <p align="center"><sub>Tactical motifs flagged on every line — here a back-rank mate in 1</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshot-settings.png" alt="Settings menu with version and update check" />
+      <p align="center"><sub>Built-in update check against GitHub releases</sub></p>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - Drag-and-drop piece movement with click-to-place editing
