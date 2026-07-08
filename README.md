@@ -1,17 +1,39 @@
-# Chess Solver
+<p align="center">
+  <img src="docs/logo.png" width="120" alt="Chess Solver logo" />
+</p>
 
-A desktop chess analysis tool powered by Stockfish 18. Set up any board position and get the top 10 engine-recommended moves with evaluations, tactical motifs, and principal variations.
+<h1 align="center">Chess Solver</h1>
+
+<p align="center">
+  A desktop chess analysis tool powered by Stockfish 18.<br />
+  Set up any board position and get the top engine-recommended moves with evaluations, tactical motifs, and principal variations.
+</p>
+
+<p align="center">
+  <a href="https://github.com/ccharafeddine/chess-solver/actions/workflows/ci.yml"><img src="https://github.com/ccharafeddine/chess-solver/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/ccharafeddine/chess-solver/releases/latest"><img src="https://img.shields.io/github/v/release/ccharafeddine/chess-solver?include_prereleases&label=release" alt="Latest release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React_19-087ea4?logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Electron-2b2e3a?logo=electron&logoColor=9feaf9" alt="Electron" />
+  <img src="https://img.shields.io/badge/Stockfish_18-WASM-863bff" alt="Stockfish 18 WASM" />
+</p>
 
 ## Features
 
 - Drag-and-drop piece movement with click-to-place editing
 - Stockfish 18 analysis with streaming results (moves appear instantly)
-- Top 10 move recommendations with eval bars and depth info
+- 1 / 3 / 5 candidate lines (fewer lines = deeper search), with eval bars and depth info
 - Tactical motif detection (forks, pins, skewers, checks, etc.)
 - Opening name recognition
 - Checkmate, stalemate, and draw detection
 - Light/dark theme toggle
 - Board flip and turn switching
+- Built-in update check (Settings → Check for updates)
 
 ## Quick Start (Development)
 
@@ -21,6 +43,18 @@ npm run dev
 ```
 
 Opens the app in your browser at `http://localhost:5173`.
+
+> **Note:** cloning requires [Git LFS](https://git-lfs.com/) — the Stockfish WASM binary (~108 MB) is stored with LFS.
+
+## Testing
+
+```bash
+npm test        # unit tests (vitest)
+npm run lint    # eslint
+npm run build   # type-check + production build
+```
+
+The same three steps run in CI on every push and pull request.
 
 ## Build Standalone Desktop App
 
@@ -88,10 +122,11 @@ This produces a multi-resolution `.ico` (256, 128, 64, 48, 32, 16) using GDI+ wi
 2. Select a piece from the palette below the board, then click any square to place it.
 3. Use **Remove** to erase pieces from the board.
 4. Toggle **White/Black to move** to change the side to analyze.
-5. The analysis panel shows the top 10 engine moves with evaluations, tactical motifs, and principal variations.
+5. The analysis panel shows the top engine moves with evaluations, tactical motifs, and principal variations. Use the **1 / 3 / 5** selector to trade breadth for depth.
 6. Click any analysis line to play that move on the board.
 7. Hover over a line to highlight the move on the board.
 8. Use **Reset** to restore the starting position or **Clear** to empty the board.
+9. Open the **⚙ settings menu** (top left) to see the app version or check for updates.
 
 ## Tech Stack
 
@@ -101,3 +136,8 @@ This produces a multi-resolution `.ico` (256, 128, 64, 48, 32, 16) using GDI+ wi
 - chess.js for move validation
 - react-chessboard for the board UI
 - Electron for desktop runtime, electron-builder for packaging
+- Vitest for unit tests, GitHub Actions for CI
+
+## License
+
+[MIT](LICENSE)

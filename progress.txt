@@ -1,0 +1,33 @@
+# Chess Solver — Progress
+
+## Current state (2026-07-08): v1.0.0 release prep
+- Engine layer (src/engine/stockfish.ts) rewritten around bestmove accounting:
+  no readyok/isready synchronization, pending analysis survives engine
+  restarts, stuck searches auto-retry once on a fresh worker, and worker
+  startup has a 20s uciok timeout. This fixed the long-standing bug where
+  moving before the best move loaded left the other side's analysis stuck
+  until several refreshes.
+- App state (src/App.tsx) refactored to derived data: turn, game end, opening
+  name, and legality warnings derive from the FEN; analysis results are keyed
+  by the FEN they were computed for, so stale engine output can never render
+  against the wrong position.
+- FEN editing helpers extracted to src/engine/fen.ts (unit-tested).
+- Settings gear (top left) with version display, GitHub link, and
+  "Check for updates" backed by the GitHub releases API (src/engine/updates.ts).
+- Electron hardening: path-traversal fix (separator-suffixed prefix check),
+  CSP + nosniff headers on the local server, sandbox enabled,
+  setWindowOpenHandler/will-navigate guards (external links open in browser).
+- CI: .github/workflows/ci.yml runs lint, vitest (42 tests), and build on
+  push/PR to master. LFS deliberately not fetched in CI.
+- README rebuilt with logo (docs/logo.png, extracted from build/icon.ico),
+  badges, and test docs. MIT LICENSE added. GitHub topics set.
+
+## Known quirks
+- Board editor intentionally allows illegal positions; chess.js-based
+  features (legality filter, SAN) degrade gracefully via validateFen gates.
+- MultiPV selector: 1 (default, deepest), 3, 5.
+
+## Next ideas (not started)
+- PGN import/export
+- Move history / undo
+- Publish v1.0.0 release (draft prepared via gh)

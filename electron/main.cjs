@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
@@ -15,13 +15,31 @@ const MIME_TYPES = {
   '.json': 'application/json',
 };
 
+// 'wasm-unsafe-eval' and blob: workers are required by the multi-threaded
+// Stockfish build; connect-src allows the GitHub update check.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval' blob:",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self' https://api.github.com",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 function startServer() {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      let filePath = path.join(DIST_PATH, decodeURIComponent(req.url === '/' ? '/index.html' : req.url));
-      filePath = path.normalize(filePath);
+      const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+      const filePath = path.normalize(
+        path.join(DIST_PATH, urlPath === '/' ? '/index.html' : urlPath)
+      );
 
-      if (!filePath.startsWith(DIST_PATH)) {
+      // Resolve must stay inside dist/ — the separator suffix prevents
+      // sibling-directory bypasses like "dist-evil".
+      if (filePath !== DIST_PATH && !filePath.startsWith(DIST_PATH + path.sep)) {
         res.writeHead(403);
         res.end();
         return;
@@ -37,6 +55,8 @@ function startServer() {
           'Cross-Origin-Opener-Policy': 'same-origin',
           'Cross-Origin-Embedder-Policy': 'require-corp',
           'Cross-Origin-Resource-Policy': 'same-origin',
+          'Content-Security-Policy': CSP,
+          'X-Content-Type-Options': 'nosniff',
         });
         res.end(data);
       } catch {
@@ -53,6 +73,7 @@ function startServer() {
 
 app.whenReady().then(async () => {
   const port = await startServer();
+  const appOrigin = `http://127.0.0.1:${port}`;
 
   const win = new BrowserWindow({
     width: 1100,
@@ -61,11 +82,31 @@ app.whenReady().then(async () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
   });
 
+  // External links (e.g. release downloads from the update check) open in
+  // the system browser; the window itself never navigates away or spawns
+  // child windows.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(appOrigin)) {
+      event.preventDefault();
+      if (url.startsWith('https://')) {
+        shell.openExternal(url);
+      }
+    }
+  });
+
   win.setMenuBarVisibility(false);
-  win.loadURL(`http://127.0.0.1:${port}`);
+  win.loadURL(appOrigin);
 
   if (process.env.CHESS_SOLVER_DEVTOOLS) {
     win.webContents.openDevTools({ mode: 'detach' });

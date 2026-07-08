@@ -1,181 +1,26 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Chess, type Square } from 'chess.js';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Chess, validateFen, type Square } from 'chess.js';
 import Board from './components/Board';
 import PieceSelector from './components/PieceSelector';
 import BoardControls from './components/BoardControls';
 import AnalysisPanel from './components/AnalysisPanel';
+import SettingsMenu from './components/SettingsMenu';
 import type { AnalysisLineDisplay } from './components/AnalysisPanel';
 import { StockfishEngine } from './engine/stockfish';
-import type { AnalysisLine } from './engine/stockfish';
+import type { AnalysisLine, AnalysisMeta } from './engine/stockfish';
+import {
+  START_FEN,
+  EMPTY_FEN,
+  buildFen,
+  editBoard,
+  movePiece,
+  hasKings,
+  isAnalyzable,
+} from './engine/fen';
 import { uciToSan, isKingInCheck, detectGameEnd } from './engine/utils';
 import { detectTactics } from './engine/tactics';
 import { lookupOpening } from './engine/openings';
 import './App.css';
-
-const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-const EMPTY_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
-
-const FEN_PIECE_MAP: Record<string, string> = {
-  K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N', P: 'P',
-  k: 'k', q: 'q', r: 'r', b: 'b', n: 'n', p: 'p',
-};
-
-function expandRow(row: string): string {
-  let result = '';
-  for (const ch of row) {
-    const digit = parseInt(ch);
-    if (!isNaN(digit)) {
-      result += '.'.repeat(digit);
-    } else {
-      result += ch;
-    }
-  }
-  return result;
-}
-
-function compressRow(row: string): string {
-  let result = '';
-  let empties = 0;
-  for (const ch of row) {
-    if (ch === '.') {
-      empties++;
-    } else {
-      if (empties > 0) {
-        result += empties;
-        empties = 0;
-      }
-      result += ch;
-    }
-  }
-  if (empties > 0) result += empties;
-  return result;
-}
-
-function getPieceAt(expanded: string[], file: number, rank: number): string {
-  return expanded[rank][file];
-}
-
-function computeCastling(expanded: string[]): string {
-  let castling = '';
-  // White: king on e1 (file 4, rank 7)
-  if (getPieceAt(expanded, 4, 7) === 'K') {
-    if (getPieceAt(expanded, 7, 7) === 'R') castling += 'K';
-    if (getPieceAt(expanded, 0, 7) === 'R') castling += 'Q';
-  }
-  // Black: king on e8 (file 4, rank 0)
-  if (getPieceAt(expanded, 4, 0) === 'k') {
-    if (getPieceAt(expanded, 7, 0) === 'r') castling += 'k';
-    if (getPieceAt(expanded, 0, 0) === 'r') castling += 'q';
-  }
-  return castling || '-';
-}
-
-function buildFen(boardPart: string, turn: string): string {
-  const expanded = boardPart.split('/').map(expandRow);
-  const castling = computeCastling(expanded);
-  return `${boardPart} ${turn} ${castling} - 0 1`;
-}
-
-function editBoard(fen: string, square: string, piece: string | null): string {
-  const parts = fen.split(' ');
-  const rows = parts[0].split('/');
-  const file = square.charCodeAt(0) - 97;
-  const rank = 8 - parseInt(square[1]);
-
-  const expanded = rows.map(expandRow);
-  const row = expanded[rank].split('');
-  row[file] = piece ? FEN_PIECE_MAP[piece] : '.';
-  expanded[rank] = row.join('');
-
-  const boardPart = expanded.map(compressRow).join('/');
-  return buildFen(boardPart, parts[1]);
-}
-
-function movePiece(fen: string, from: string, to: string): string {
-  const parts = fen.split(' ');
-  const rows = parts[0].split('/');
-  const expanded = rows.map(expandRow);
-
-  const fromFile = from.charCodeAt(0) - 97;
-  const fromRank = 8 - parseInt(from[1]);
-  const toFile = to.charCodeAt(0) - 97;
-  const toRank = 8 - parseInt(to[1]);
-
-  const piece = expanded[fromRank][fromFile];
-  if (piece === '.') return fen;
-
-  // Clear source square
-  const srcRow = expanded[fromRank].split('');
-  srcRow[fromFile] = '.';
-  expanded[fromRank] = srcRow.join('');
-
-  // Place piece on destination
-  const destRow = expanded[toRank].split('');
-  destRow[toFile] = piece;
-  expanded[toRank] = destRow.join('');
-
-  // Detect castling: king moves exactly 2 files on the same rank
-  if ((piece === 'K' || piece === 'k') && fromRank === toRank && Math.abs(toFile - fromFile) === 2) {
-    const castleRow = expanded[fromRank].split('');
-    if (toFile > fromFile) {
-      // Kingside: move rook from h-file (7) to f-file (5)
-      castleRow[7] = '.';
-      castleRow[5] = piece === 'K' ? 'R' : 'r';
-    } else {
-      // Queenside: move rook from a-file (0) to d-file (3)
-      castleRow[0] = '.';
-      castleRow[3] = piece === 'K' ? 'R' : 'r';
-    }
-    expanded[fromRank] = castleRow.join('');
-  }
-
-  const boardPart = expanded.map(compressRow).join('/');
-  return buildFen(boardPart, parts[1]);
-}
-
-function hasBothColors(fen: string): boolean {
-  const board = fen.split(' ')[0];
-  let hasWhite = false;
-  let hasBlack = false;
-  for (const ch of board) {
-    if (ch >= 'A' && ch <= 'Z') hasWhite = true;
-    if (ch >= 'a' && ch <= 'z') hasBlack = true;
-    if (hasWhite && hasBlack) return true;
-  }
-  return false;
-}
-
-function hasKings(fen: string): boolean {
-  const board = fen.split(' ')[0];
-  return board.includes('K') && board.includes('k');
-}
-
-function isAnalyzable(fen: string): boolean {
-  if (!hasBothColors(fen) || !hasKings(fen)) return false;
-
-  const parts = fen.split(' ');
-  if (parts.length < 4) return false;
-
-  const rows = parts[0].split('/');
-  if (rows.length !== 8) return false;
-
-  // Check each row sums to 8 squares
-  for (const row of rows) {
-    let count = 0;
-    for (const ch of row) {
-      const d = parseInt(ch);
-      count += isNaN(d) ? 1 : d;
-    }
-    if (count !== 8) return false;
-  }
-
-  // Exactly one king per side
-  const board = parts[0];
-  if ((board.match(/K/g) || []).length !== 1) return false;
-  if ((board.match(/k/g) || []).length !== 1) return false;
-
-  return true;
-}
 
 function computeBoardWidth(): number {
   const w = window.innerWidth;
@@ -184,42 +29,104 @@ function computeBoardWidth(): number {
   return Math.min(w - 32, 400);
 }
 
+interface AnalysisResult {
+  fen: string;
+  lines: AnalysisLineDisplay[];
+  final: boolean;
+}
+
+interface EngineWarning {
+  fen: string | null; // null = applies regardless of position
+  message: string;
+}
+
 export default function App() {
   const [fen, setFen] = useState(START_FEN);
-  const [turn, setTurn] = useState<'w' | 'b'>('w');
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
-  const [analysisLines, setAnalysisLines] = useState<AnalysisLineDisplay[]>([]);
-  const [openingName, setOpeningName] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [highlightSquares, setHighlightSquares] = useState<{
     from: string;
     to: string;
   } | null>(null);
   const [engineReady, setEngineReady] = useState(false);
+  const [engineFailed, setEngineFailed] = useState(false);
   const [boardWidth, setBoardWidth] = useState(computeBoardWidth);
-  const [positionWarning, setPositionWarning] = useState<string | null>(null);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
-  const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
+  // Analysis output is keyed by the FEN it was computed for. Results for any
+  // other position are simply not displayed, so stale engine output can never
+  // be shown against the wrong board — no token bookkeeping required.
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [engineWarning, setEngineWarning] = useState<EngineWarning | null>(null);
+  const [analysisMeta, setAnalysisMeta] = useState<AnalysisMeta>({ depth: 0, nps: 0, threads: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('chess-solver-theme');
     return saved === 'dark' ? 'dark' : 'light';
   });
+  const [multiPV, setMultiPV] = useState<number>(() => {
+    const saved = parseInt(localStorage.getItem('chess-solver-multipv') ?? '1', 10);
+    return [1, 3, 5].includes(saved) ? saved : 1;
+  });
 
   const engineRef = useRef<StockfishEngine | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const analysisFenRef = useRef<string>('');
+
+  // Everything below derives from the position, so a rendered frame can never
+  // pair one position's board with another position's analysis.
+  const turn: 'w' | 'b' = fen.split(' ')[1] === 'b' ? 'b' : 'w';
+  const analyzable = useMemo(() => isAnalyzable(fen), [fen]);
+  const gameEndMessage = useMemo(() => detectGameEnd(fen), [fen]);
+  const openingName = useMemo(() => lookupOpening(fen), [fen]);
+  const illegalWarning = useMemo(() => {
+    const waitingSide = turn === 'w' ? 'b' : 'w';
+    if (!hasKings(fen) || !isKingInCheck(fen, waitingSide)) return null;
+    const sideLabel = waitingSide === 'w' ? "White's" : "Black's";
+    return `${sideLabel} king is in check but it's not their turn. Switch to "${sideLabel} turn" to analyze ${sideLabel.toLowerCase()} responses.`;
+  }, [fen, turn]);
+
+  const resultIsFresh = analysisResult !== null && analysisResult.fen === fen;
+  const analysisLines = resultIsFresh ? analysisResult.lines : [];
+  const isAnalyzing =
+    analyzable &&
+    !gameEndMessage &&
+    !illegalWarning &&
+    !engineFailed &&
+    !(resultIsFresh && analysisResult.final);
+  const positionWarning =
+    (engineWarning && (engineWarning.fen === null || engineWarning.fen === fen)
+      ? engineWarning.message
+      : null) ?? illegalWarning;
 
   useEffect(() => {
     const engine = new StockfishEngine();
     engineRef.current = engine;
-    engine.init().then(() => setEngineReady(true));
-    return () => engine.destroy();
+    // StrictMode mounts effects twice in dev; results from a disposed
+    // engine instance must not touch state.
+    let disposed = false;
+    engine
+      .init()
+      .then(() => {
+        if (!disposed) setEngineReady(true);
+      })
+      .catch(() => {
+        if (disposed) return;
+        setEngineFailed(true);
+        setEngineWarning({
+          fen: null,
+          message: 'The Stockfish engine failed to load. Restart the app to retry.',
+        });
+      });
+    return () => {
+      disposed = true;
+      engine.destroy();
+    };
   }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('chess-solver-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('chess-solver-multipv', String(multiPV));
+  }, [multiPV]);
 
   useEffect(() => {
     const handleResize = () => setBoardWidth(computeBoardWidth());
@@ -229,36 +136,45 @@ export default function App() {
 
   const runAnalysis = useCallback(
     (analysisFen: string) => {
-      if (!engineReady || !engineRef.current) {
-        setIsAnalyzing(false);
-        return;
-      }
-      if (!isAnalyzable(analysisFen)) {
-        setAnalysisLines([]);
-        setIsAnalyzing(false);
+      if (!engineReady || !engineRef.current || !isAnalyzable(analysisFen)) {
         return;
       }
 
-      setIsAnalyzing(true);
-      analysisFenRef.current = analysisFen;
+      engineRef.current.analyze(analysisFen, (lines: AnalysisLine[], meta: AnalysisMeta, isFinal: boolean) => {
+        setAnalysisMeta(meta);
 
-      console.log('[App] Analyzing FEN:', analysisFen);
+        // Drop lines that are not legal in this position — a defense against
+        // stale engine output. Only applicable when chess.js can load the
+        // position at all; for editor-built positions it can't validate
+        // (e.g. pawns on the back rank), trust the engine's own legality.
+        let legal = lines;
+        if (validateFen(analysisFen).ok) {
+          legal = lines.filter((line) => {
+            try {
+              const chess = new Chess(analysisFen);
+              return Boolean(chess.move({ from: line.from, to: line.to, promotion: line.promotion ?? 'q' }));
+            } catch {
+              return false;
+            }
+          });
+        }
 
-      engineRef.current.analyze(analysisFen, (lines: AnalysisLine[], isFinal: boolean) => {
-        // Ignore results if FEN has changed since we started
-        if (analysisFenRef.current !== analysisFen) {
-          console.log('[App] Stale result, ignoring');
+        if (lines.length > 0 && legal.length === 0) {
+          // Everything the engine sent was stale garbage; wait for the next
+          // stream instead of rendering it or claiming failure.
           return;
         }
 
-        if (isFinal && lines.length === 0) {
-          setAnalysisLines([]);
-          setPositionWarning('Engine could not analyze this position. Try adjusting the board.');
-          setIsAnalyzing(false);
+        if (isFinal && legal.length === 0) {
+          setAnalysisResult({ fen: analysisFen, lines: [], final: true });
+          setEngineWarning({
+            fen: analysisFen,
+            message: 'The engine did not return analysis for this position. Click ↻ to retry.',
+          });
           return;
         }
 
-        const displayLines: AnalysisLineDisplay[] = lines.map((line) => ({
+        const displayLines: AnalysisLineDisplay[] = legal.map((line) => ({
           move: line.move,
           san: uciToSan(analysisFen, line.move),
           from: line.from,
@@ -271,59 +187,18 @@ export default function App() {
           tactics: detectTactics(analysisFen, line.move),
         }));
 
-        setAnalysisLines(displayLines);
-        setOpeningName(lookupOpening(analysisFen));
-        if (isFinal) {
-          setIsAnalyzing(false);
-        }
-      });
+        setAnalysisResult({ fen: analysisFen, lines: displayLines, final: isFinal });
+      }, { multiPV });
     },
-    [engineReady]
+    [engineReady, multiPV]
   );
 
+  // Debounced analysis of the current position.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setAnalysisLines([]);
-    setIsAnalyzing(true);
-
-    // Immediately invalidate any in-flight analysis so stale callbacks
-    // from a previous FEN are rejected before the debounce fires.
-    analysisFenRef.current = fen;
-
-    // Check for checkmate, stalemate, or draw
-    const gameEnd = detectGameEnd(fen);
-    setGameEndMessage(gameEnd);
-    if (gameEnd) {
-      setPositionWarning(null);
-      setIsAnalyzing(false);
-      return;
-    }
-
-    // Check if the non-moving side's king is in check (illegal position)
-    const movingSide = fen.split(' ')[1] as 'w' | 'b';
-    const waitingSide = movingSide === 'w' ? 'b' : 'w';
-    const illegal = hasKings(fen) && isKingInCheck(fen, waitingSide);
-
-    if (illegal) {
-      const sideLabel = waitingSide === 'w' ? "White's" : "Black's";
-      setPositionWarning(
-        `${sideLabel} king is in check but it's not their turn. Switch to "${sideLabel} turn" to analyze ${sideLabel.toLowerCase()} responses.`
-      );
-      setIsAnalyzing(false);
-    } else {
-      setPositionWarning(null);
-    }
-
-    debounceRef.current = setTimeout(() => {
-      if (!illegal) {
-        runAnalysis(fen);
-      }
-    }, 150);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [fen, runAnalysis]);
+    if (!analyzable || gameEndMessage || illegalWarning) return;
+    const timer = setTimeout(() => runAnalysis(fen), 150);
+    return () => clearTimeout(timer);
+  }, [fen, analyzable, gameEndMessage, illegalWarning, runAnalysis]);
 
   const handleSquareClick = (square: string) => {
     if (!selectedPiece) return;
@@ -335,78 +210,65 @@ export default function App() {
     }
   };
 
-  const handlePieceDrop = (from: string, to: string): boolean => {
-    if (from === to) return false;
-
-    // If the drag corresponds to a legal chess move, treat it as a real game
-    // move: chess.js produces a fully correct FEN (castling/en-passant/halfmove)
-    // and we flip the turn so analysis runs for the other side. Auto-promote to
-    // queen since the drag UI has no promotion picker.
+  // Apply a move via chess.js when the position and move are legal — this
+  // produces a fully correct FEN (castling rights, en passant, move counters)
+  // — and let the caller fall back to raw board editing otherwise.
+  const applyMove = (from: string, to: string, promotion?: string): boolean => {
     try {
       const chess = new Chess(fen);
       const move = chess.move({
         from: from as Square,
         to: to as Square,
-        promotion: 'q',
+        promotion: promotion ?? 'q',
       });
       if (move) {
-        setTurn(chess.turn());
         setFen(chess.fen());
         setHighlightSquares({ from, to });
         return true;
       }
     } catch {
-      // Position not legal for chess.js, or move not legal — fall through to edit mode.
+      // Position or move not legal for chess.js.
     }
+    return false;
+  };
 
+  const handlePieceDrop = (from: string, to: string): boolean => {
+    if (from === to) return false;
+    if (applyMove(from, to)) return true;
     setFen(movePiece(fen, from, to));
     return true;
   };
 
   const handleToggleTurn = () => {
     const newTurn = turn === 'w' ? 'b' : 'w';
-    setTurn(newTurn);
-    const parts = fen.split(' ');
-    const boardPart = parts[0];
+    const boardPart = fen.split(' ')[0];
     setFen(buildFen(boardPart, newTurn));
   };
 
   const handleReset = () => {
     setFen(START_FEN);
-    setTurn('w');
     setSelectedPiece(null);
     setHighlightSquares(null);
   };
 
   const handleClear = () => {
     setFen(EMPTY_FEN);
-    setTurn('w');
     setSelectedPiece(null);
     setHighlightSquares(null);
-    setAnalysisLines([]);
   };
 
   const handleMakeMove = (from: string, to: string, promotion?: string) => {
+    if (applyMove(from, to, promotion)) return;
+
+    // Fallback for edited positions chess.js can't validate: move the piece
+    // manually, apply promotion, and flip the turn.
     let newFen = movePiece(fen, from, to);
-    // Handle promotion: replace the pawn with the promoted piece
     if (promotion) {
-      const toFile = to.charCodeAt(0) - 97;
-      const toRank = 8 - parseInt(to[1]);
-      const parts = newFen.split(' ');
-      const rows = parts[0].split('/');
-      const expanded = rows.map(expandRow);
-      const row = expanded[toRank].split('');
-      // Determine color from current turn
-      row[toFile] = turn === 'w' ? promotion.toUpperCase() : promotion.toLowerCase();
-      expanded[toRank] = row.join('');
-      const boardPart = expanded.map(compressRow).join('/');
-      newFen = buildFen(boardPart, parts[1]);
+      const piece = turn === 'w' ? promotion.toUpperCase() : promotion.toLowerCase();
+      newFen = editBoard(newFen, to, piece);
     }
-    // Switch turn after making a move
     const newTurn = turn === 'w' ? 'b' : 'w';
-    const parts = newFen.split(' ');
-    const boardPart = parts[0];
-    setTurn(newTurn);
+    const boardPart = newFen.split(' ')[0];
     setFen(buildFen(boardPart, newTurn));
     setHighlightSquares({ from, to });
   };
@@ -420,28 +282,26 @@ export default function App() {
   };
 
   const handleReanalyze = useCallback(() => {
-    setPositionWarning(null);
-    setAnalysisLines([]);
-    setIsAnalyzing(true);
+    setEngineWarning(null);
+    setAnalysisResult(null);
     setHighlightSquares(null);
-    analysisFenRef.current = fen;
-    if (engineRef.current) {
-      engineRef.current.stop();
-    }
     runAnalysis(fen);
   }, [fen, runAnalysis]);
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Chess Solver</h1>
+        <div className="app-header-left">
+          <SettingsMenu />
+          <h1>Chess Solver</h1>
+        </div>
         <button
           className="theme-toggle"
           onClick={handleToggleTheme}
           aria-label="Toggle dark mode"
         >
           <span className="theme-toggle-icon">
-            {theme === 'light' ? '\u2600' : '\u263E'}
+            {theme === 'light' ? '☀' : '☾'}
           </span>
           <span className="theme-toggle-track">
             <span className="theme-toggle-knob" />
@@ -481,6 +341,9 @@ export default function App() {
             turn={turn}
             positionWarning={positionWarning}
             gameEndMessage={gameEndMessage}
+            meta={analysisMeta}
+            multiPV={multiPV}
+            onMultiPVChange={setMultiPV}
             onRefresh={handleReanalyze}
             onMakeMove={handleMakeMove}
             onHighlightMove={(from, to) => setHighlightSquares({ from, to })}

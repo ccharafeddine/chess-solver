@@ -1,4 +1,5 @@
 import type { TacticalMotif } from '../engine/tactics';
+import type { AnalysisMeta } from '../engine/stockfish';
 import { formatEval, evalColor } from '../engine/utils';
 
 export interface AnalysisLineDisplay {
@@ -21,10 +22,21 @@ interface AnalysisPanelProps {
   turn: 'w' | 'b';
   positionWarning: string | null;
   gameEndMessage: string | null;
+  meta: AnalysisMeta;
+  multiPV: number;
+  onMultiPVChange: (n: number) => void;
   onRefresh: () => void;
   onMakeMove: (from: string, to: string, promotion?: string) => void;
   onHighlightMove: (from: string, to: string) => void;
   onClearHighlight: () => void;
+}
+
+const LINE_CHOICES = [1, 3, 5];
+
+function formatNps(nps: number): string {
+  if (nps >= 1_000_000) return `${(nps / 1_000_000).toFixed(1)} Mn/s`;
+  if (nps >= 1_000) return `${Math.round(nps / 1_000)} kn/s`;
+  return `${nps} n/s`;
 }
 
 function evalBarPercent(cp: number, mate: number | null): number {
@@ -71,12 +83,16 @@ export default function AnalysisPanel({
   turn,
   positionWarning,
   gameEndMessage,
+  meta,
+  multiPV,
+  onMultiPVChange,
   onRefresh,
   onMakeMove,
   onHighlightMove,
   onClearHighlight,
 }: AnalysisPanelProps) {
-  const depth = lines.length > 0 ? lines[0].depth : 0;
+  const lineDepth = lines.length > 0 ? lines[0].depth : 0;
+  const depth = Math.max(lineDepth, meta.depth);
   const showSkeleton = isAnalyzing && lines.length === 0;
   const sideLabel = turn === 'w' ? 'White' : 'Black';
 
@@ -91,8 +107,24 @@ export default function AnalysisPanel({
               : 'Analysis'}
         </h2>
         <div className="analysis-header-right">
+          <div className="lines-selector" title="Number of candidate lines (fewer = deeper)">
+            {LINE_CHOICES.map((n) => (
+              <button
+                key={n}
+                className={`lines-btn ${multiPV === n ? 'lines-btn-active' : ''}`}
+                onClick={() => onMultiPVChange(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
           {isAnalyzing && lines.length === 0 && <span className="analyzing-spinner" />}
-          {depth > 0 && <span className="depth-badge">Depth {depth}</span>}
+          {depth > 0 && (
+            <span className="depth-badge" title={`Threads: ${meta.threads}`}>
+              D{depth}
+              {meta.nps > 0 && <span className="nps-sub"> · {formatNps(meta.nps)}</span>}
+            </span>
+          )}
           <button className="refresh-btn" onClick={onRefresh} title="Refresh analysis">
             &#8635;
           </button>
