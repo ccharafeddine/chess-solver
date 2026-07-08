@@ -71,10 +71,9 @@ function startServer() {
   });
 }
 
-app.whenReady().then(async () => {
-  const port = await startServer();
-  const appOrigin = `http://127.0.0.1:${port}`;
+let appOrigin = null;
 
+function createWindow() {
   const win = new BrowserWindow({
     width: 1100,
     height: 750,
@@ -111,8 +110,24 @@ app.whenReady().then(async () => {
   if (process.env.CHESS_SOLVER_DEVTOOLS) {
     win.webContents.openDevTools({ mode: 'detach' });
   }
+}
+
+app.whenReady().then(async () => {
+  const port = await startServer();
+  appOrigin = `http://127.0.0.1:${port}`;
+  createWindow();
+});
+
+// macOS convention: the app stays alive with no windows and reopens one when
+// its Dock icon is activated; everywhere else, closing the window quits.
+app.on('activate', () => {
+  if (appOrigin !== null && BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
 app.on('window-all-closed', () => {
-  app.quit();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });

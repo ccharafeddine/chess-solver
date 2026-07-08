@@ -27,7 +27,18 @@
   features (legality filter, SAN) degrade gracefully via validateFen gates.
 - MultiPV selector: 1 (default, deepest), 3, 5.
 
+## macOS support (2026-07-08)
+- electron/main.cjs follows mac conventions (stays alive on window close,
+  recreates window on Dock activate).
+- build/icon.png (1024px, from build/make-icon-png.ps1) feeds the .icns.
+- .github/workflows/release.yml builds the Windows portable exe and a
+  universal (x64+arm64) .dmg on tag push, or via workflow_dispatch against
+  an existing release tag. Checkout uses lfs: true (packaging needs the
+  real WASM). DMGs cannot be built on Windows — always via the mac runner.
+- Binaries are unsigned/not notarized: SmartScreen warning on Windows,
+  right-click → Open on macOS. Code signing is the v1.1 polish item.
+
 ## Next ideas (not started)
 - PGN import/export
 - Move history / undo
-- Publish v1.0.0 release (draft prepared via gh)
+- Code signing / notarization

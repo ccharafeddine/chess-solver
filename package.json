@@ -36,6 +36,16 @@
     "win": {
       "target": "portable",
       "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["universal"]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.board-games"
     }
   },
   "dependencies": {

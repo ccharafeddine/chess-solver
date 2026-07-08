@@ -1,0 +1,66 @@
+name: Release builds
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to upload assets to (builds from the dispatched branch)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows portable .exe
+    runs-on: windows-latest
+    steps:
+      # lfs: true — packaging needs the real Stockfish WASM binary, not the pointer.
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portable exe
+        run: npm run dist
+
+      - name: Upload to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release upload "$TAG" release/*.exe --clobber
+
+  macos:
+    name: macOS universal .dmg
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build universal dmg
+        run: npm run dist
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release upload "$TAG" release/*.dmg --clobber

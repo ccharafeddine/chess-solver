@@ -56,6 +56,15 @@ npm run build   # type-check + production build
 
 The same three steps run in CI on every push and pull request.
 
+## Download
+
+Prebuilt binaries are on the [releases page](https://github.com/ccharafeddine/chess-solver/releases/latest):
+
+- **Windows** — `Chess.Solver.<version>.exe`, a portable single-file build. Download and run (SmartScreen may warn on first run because the binary is unsigned; choose "More info → Run anyway").
+- **macOS** — `Chess.Solver-<version>-universal.dmg`, a universal (Intel + Apple Silicon) disk image. The app is not notarized, so on first launch right-click the app → **Open** → **Open** to get past Gatekeeper.
+
+Release binaries are built by the [release workflow](.github/workflows/release.yml) on tagged commits.
+
 ## Build Standalone Desktop App
 
 ```bash
@@ -65,16 +74,18 @@ npm run electron
 
 Builds the production bundle and launches it as a standalone Electron desktop app.
 
-## Build Portable .exe
+## Build Installers
 
 ```bash
 npm run dist
 ```
 
-Outputs to `release/`:
+Builds for the platform you run it on and outputs to `release/`:
 
-- `release/Chess Solver <version>.exe` — single-file portable build (movable to USB / other machines)
-- `release/win-unpacked/` — unpacked app folder used as the source for desktop installs
+- **On Windows:** `release/Chess Solver <version>.exe` — single-file portable build (movable to USB / other machines) — plus `release/win-unpacked/`, the unpacked app folder used as the source for desktop installs
+- **On macOS:** `release/Chess Solver-<version>-universal.dmg` — universal disk image for Intel and Apple Silicon
+
+`.dmg` files can only be built on macOS; CI's release workflow uses a macOS runner for that.
 
 ### First-time build (Windows)
 
@@ -108,13 +119,14 @@ To pin to the taskbar, right-click the desktop shortcut → **Pin to taskbar** (
 
 ## App Icon
 
-The Windows executable uses `build/icon.ico` (a chess-knight glyph on a purple `#863bff` rounded square). To regenerate the icon from scratch — for example after editing the design — run:
+The app icon is a chess-knight glyph on a purple `#863bff` rounded square. Windows embeds `build/icon.ico`; macOS converts `build/icon.png` (1024×1024) to `.icns` at package time. To regenerate both after editing the design, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build/make-icon.ps1
+powershell -ExecutionPolicy Bypass -File build/make-icon.ps1      # icon.ico (256..16)
+powershell -ExecutionPolicy Bypass -File build/make-icon-png.ps1  # icon.png (1024)
 ```
 
-This produces a multi-resolution `.ico` (256, 128, 64, 48, 32, 16) using GDI+ with no external dependencies. Rerun `npm run dist` afterwards to embed it into the executable.
+Both scripts use GDI+ with no external dependencies. Rerun `npm run dist` afterwards to embed the result.
 
 ## How to Use
 
