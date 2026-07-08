@@ -31,7 +31,9 @@ jobs:
         run: npm ci
 
       - name: Build portable exe
-        run: npm run dist
+        # --publish never: assets are uploaded with gh below; without it,
+        # electron-builder's CI detection tries to publish and fails.
+        run: npm run dist -- --publish never
 
       - name: Upload to release
         shell: bash
@@ -57,7 +59,7 @@ jobs:
         run: npm ci
 
       - name: Build universal dmg
-        run: npm run dist
+        run: npm run dist -- --publish never
 
       - name: Upload to release
         env:

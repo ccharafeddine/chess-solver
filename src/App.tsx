@@ -57,9 +57,12 @@ export default function App() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [engineWarning, setEngineWarning] = useState<EngineWarning | null>(null);
   const [analysisMeta, setAnalysisMeta] = useState<AnalysisMeta>({ depth: 0, nps: 0, threads: 0 });
+  // Follow the OS color scheme until the user explicitly toggles a theme;
+  // an explicit choice is persisted and wins from then on.
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('chess-solver-theme');
-    return saved === 'dark' ? 'dark' : 'light';
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
   const [multiPV, setMultiPV] = useState<number>(() => {
     const saved = parseInt(localStorage.getItem('chess-solver-multipv') ?? '1', 10);
@@ -121,8 +124,20 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('chess-solver-theme', theme);
   }, [theme]);
+
+  // Track live OS theme changes while the user hasn't picked a theme.
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const onChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem('chess-solver-theme')) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('chess-solver-multipv', String(multiPV));
@@ -278,7 +293,11 @@ export default function App() {
   };
 
   const handleToggleTheme = () => {
-    setTheme((t) => (t === 'light' ? 'dark' : 'light'));
+    setTheme((t) => {
+      const next = t === 'light' ? 'dark' : 'light';
+      localStorage.setItem('chess-solver-theme', next);
+      return next;
+    });
   };
 
   const handleReanalyze = useCallback(() => {
