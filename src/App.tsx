@@ -5,8 +5,9 @@ import PieceSelector from './components/PieceSelector';
 import BoardControls from './components/BoardControls';
 import AnalysisPanel from './components/AnalysisPanel';
 import SettingsMenu from './components/SettingsMenu';
+import { useUpdateCheck } from './useUpdateCheck';
 import type { AnalysisLineDisplay } from './components/AnalysisPanel';
-import { StockfishEngine } from './engine/stockfish';
+import { StockfishEngine, THINK_TIME_CHOICES } from './engine/stockfish';
 import type { AnalysisLine, AnalysisMeta } from './engine/stockfish';
 import {
   START_FEN,
@@ -68,6 +69,11 @@ export default function App() {
     const saved = parseInt(localStorage.getItem('chess-solver-multipv') ?? '1', 10);
     return [1, 3, 5].includes(saved) ? saved : 1;
   });
+  const [thinkTimeSec, setThinkTimeSec] = useState<number>(() => {
+    const saved = parseInt(localStorage.getItem('chess-solver-think-time') ?? '3', 10);
+    return THINK_TIME_CHOICES.includes(saved) ? saved : 3;
+  });
+  const updates = useUpdateCheck();
 
   const engineRef = useRef<StockfishEngine | null>(null);
 
@@ -144,6 +150,10 @@ export default function App() {
   }, [multiPV]);
 
   useEffect(() => {
+    localStorage.setItem('chess-solver-think-time', String(thinkTimeSec));
+  }, [thinkTimeSec]);
+
+  useEffect(() => {
     const handleResize = () => setBoardWidth(computeBoardWidth());
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -174,7 +184,7 @@ export default function App() {
           });
         }
 
-        if (lines.length > 0 && legal.length === 0) {
+        if (!isFinal && lines.length > 0 && legal.length === 0) {
           // Everything the engine sent was stale garbage; wait for the next
           // stream instead of rendering it or claiming failure.
           return;
@@ -203,15 +213,17 @@ export default function App() {
         }));
 
         setAnalysisResult({ fen: analysisFen, lines: displayLines, final: isFinal });
-      }, { multiPV });
+      }, { multiPV, movetimeMs: thinkTimeSec * 1000 });
     },
-    [engineReady, multiPV]
+    [engineReady, multiPV, thinkTimeSec]
   );
 
-  // Debounced analysis of the current position.
+  // Debounced analysis of the current position. The debounce only coalesces
+  // bursts of editor clicks; the engine itself switches positions in
+  // milliseconds, so keep it short.
   useEffect(() => {
     if (!analyzable || gameEndMessage || illegalWarning) return;
-    const timer = setTimeout(() => runAnalysis(fen), 150);
+    const timer = setTimeout(() => runAnalysis(fen), 40);
     return () => clearTimeout(timer);
   }, [fen, analyzable, gameEndMessage, illegalWarning, runAnalysis]);
 
@@ -311,7 +323,15 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-left">
-          <SettingsMenu />
+          <SettingsMenu
+            thinkTimeSec={thinkTimeSec}
+            onThinkTimeChange={setThinkTimeSec}
+            updateState={updates.state}
+            updateAvailable={updates.available !== null}
+            onCheckForUpdates={updates.check}
+            autoCheck={updates.autoCheck}
+            onAutoCheckChange={updates.setAutoCheck}
+          />
           <h1>Chess Solver</h1>
         </div>
         <button
@@ -327,6 +347,21 @@ export default function App() {
           </span>
         </button>
       </header>
+
+      {updates.showBanner && updates.available && (
+        <div className="update-banner" role="status">
+          <span>
+            Chess Solver <strong>v{updates.available.latestVersion}</strong> is available
+            (you have v{__APP_VERSION__}).
+          </span>
+          <span className="update-banner-actions">
+            <a href={updates.available.url} target="_blank" rel="noopener noreferrer">
+              Download
+            </a>
+            <button onClick={updates.dismiss}>Dismiss</button>
+          </span>
+        </div>
+      )}
 
       <main className="app-main">
         <div className="board-section">

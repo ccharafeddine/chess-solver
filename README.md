@@ -43,14 +43,15 @@
 ## Features
 
 - Drag-and-drop piece movement with click-to-place editing
-- Stockfish 18 analysis with streaming results (moves appear instantly)
+- Stockfish 18 analysis on all your CPU cores (multi-threaded NNUE build), streaming results so the best move so far appears within milliseconds of each move
 - 1 / 3 / 5 candidate lines (fewer lines = deeper search), with eval bars and depth info
+- Adjustable think time per position (1s / 3s / 5s / 10s)
 - Tactical motif detection (forks, pins, skewers, checks, etc.)
 - Opening name recognition
 - Checkmate, stalemate, and draw detection
 - Light/dark theme toggle
 - Board flip and turn switching
-- Built-in update check (Settings → Check for updates)
+- Update check against GitHub releases: automatic at startup (a banner appears when a new version is out) and on demand from Settings → Check for updates
 
 ## Quick Start (Development)
 
@@ -61,7 +62,7 @@ npm run dev
 
 Opens the app in your browser at `http://localhost:5173`.
 
-> **Note:** cloning requires [Git LFS](https://git-lfs.com/) — the Stockfish WASM binary (~108 MB) is stored with LFS.
+The Stockfish engine (`stockfish-18.js` + its ~113 MB `.wasm`) comes from the `stockfish` npm package: the dev server serves it straight from `node_modules`, and `npm run build` copies it into `dist/`. Nothing engine-related is committed to the repo.
 
 ## Testing
 
@@ -155,13 +156,13 @@ Both scripts use GDI+ with no external dependencies. Rerun `npm run dist` afterw
 6. Click any analysis line to play that move on the board.
 7. Hover over a line to highlight the move on the board.
 8. Use **Reset** to restore the starting position or **Clear** to empty the board.
-9. Open the **⚙ settings menu** (top left) to see the app version or check for updates.
+9. Open the **⚙ settings menu** (top left) to change the engine's think time, see the app version, or check for updates. A dot on the gear and a banner under the header mean a new release is available.
 
 ## Tech Stack
 
 - React 19 + TypeScript
 - Vite (dev server serves COOP/COEP headers so `SharedArrayBuffer` is available for the threaded Stockfish build)
-- Stockfish 18 WASM (multi-threaded build, pthread workers)
+- Stockfish 18 WASM (multi-threaded NNUE build, pthread workers), from the `stockfish` npm package
 - chess.js for move validation
 - react-chessboard for the board UI
 - Electron for desktop runtime, electron-builder for packaging

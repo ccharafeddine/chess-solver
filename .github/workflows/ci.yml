@@ -11,8 +11,6 @@ jobs:
     name: Lint, test, and build
     runs-on: ubuntu-latest
     steps:
-      # LFS is deliberately not fetched: the Stockfish WASM binary is not
-      # needed for lint/tests, and Vite copies the LFS pointer file harmlessly.
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4

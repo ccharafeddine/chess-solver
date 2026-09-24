@@ -36,6 +36,7 @@
 }
 
 .settings-gear {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,6 +138,87 @@
 
 .settings-check-error {
   color: var(--warning);
+}
+
+.settings-label {
+  white-space: nowrap;
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.settings-toggle {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.settings-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-update-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+/* ---- Update banner ---- */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin: -8px 0 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-card);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-banner a {
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.update-banner a:hover {
+  text-decoration: underline;
+}
+
+.update-banner button {
+  font-family: var(--sans);
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.update-banner button:hover {
+  background: var(--hover-bg);
+  color: var(--text-heading);
 }
 
 .app-main {

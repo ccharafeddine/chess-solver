@@ -17,10 +17,8 @@ jobs:
     name: Windows portable .exe
     runs-on: windows-latest
     steps:
-      # lfs: true — packaging needs the real Stockfish WASM binary, not the pointer.
+      # The Stockfish engine comes from the `stockfish` npm package (npm ci).
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - uses: actions/setup-node@v4
         with:
@@ -47,8 +45,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - uses: actions/setup-node@v4
         with:
