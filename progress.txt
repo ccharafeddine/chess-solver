@@ -1,5 +1,20 @@
 # Chess Solver — Progress
 
+## v1.1.1 (2026-09-24): Windows launch fix
+- v1.1.0 .exe did nothing on launch. Two causes: (1) a listen error other
+  than EADDRINUSE on the fixed port (Windows returns EACCES for ports in
+  Hyper-V/WSL/Docker excluded ranges) rejected startServer unhandled, so no
+  window was created but the process lived on, holding the single-instance
+  lock and making every later launch exit silently. Now any listen error
+  falls back to a random port, and a total failure shows an error box and
+  exits. (2) Electron's BrowserWindow doesn't honor COOP/COEP
+  (crossOriginIsolated stays false), so SharedArrayBuffer was undefined and
+  the multi-threaded engine never started; fixed with
+  app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer').
+  Both verified in real Electron under Xvfb (engine runs 3 threads, ~1M
+  nps; port-taken fallback; second-instance handoff).
+- Portable .exe shows build/splash.bmp while it unpacks (~320MB per launch).
+
 ## v1.1.0 (2026-09-24): engine speed/strength + reliability audit
 - The app had been shipping the SINGLE-threaded Stockfish build
   (public/stockfish.* byte-matched stockfish-18-single), so the Threads
