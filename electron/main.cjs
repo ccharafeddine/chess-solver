@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, dialog, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
@@ -20,7 +20,9 @@ const MIME_TYPES = {
 // A fixed port keeps the app's origin stable between launches. localStorage
 // (theme, line count, think time) and the HTTP cache are keyed by origin, so a
 // random port silently reset settings every launch and forced a full
-// recompile of the 100MB+ engine. Falls back to any free port if taken.
+// recompile of the 100MB+ engine. Falls back to any free port if the
+// preferred one can't be used — taken (EADDRINUSE) or, on Windows, inside a
+// range reserved by Hyper-V/WSL/Docker (EACCES).
 const PREFERRED_PORT = 47813;
 
 // 'wasm-unsafe-eval' and blob: workers are required by the multi-threaded
@@ -108,8 +110,11 @@ function startServer() {
     const server = http.createServer(handleRequest);
     const listen = (port) => server.listen(port, '127.0.0.1');
     server.once('listening', () => resolve(server.address().port));
+    let triedFallback = false;
     server.on('error', (err) => {
-      if (err.code === 'EADDRINUSE' && server.address() === null) {
+      if (!triedFallback && server.address() === null) {
+        triedFallback = true;
+        console.warn(`[server] port ${PREFERRED_PORT} unavailable (${err.code}); using a random port`);
         listen(0);
       } else {
         reject(err);
@@ -118,6 +123,13 @@ function startServer() {
     listen(PREFERRED_PORT);
   });
 }
+
+// The multi-threaded Stockfish build needs SharedArrayBuffer. The server's
+// COOP/COEP headers make browsers cross-origin isolate the page, but
+// Electron's BrowserWindow doesn't reliably honor them (crossOriginIsolated
+// stays false), which left SharedArrayBuffer undefined and the engine unable
+// to start. Enable it explicitly; must run before the app is ready.
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
 let appOrigin = null;
 
@@ -170,16 +182,29 @@ if (!gotInstanceLock) {
     const [win] = BrowserWindow.getAllWindows();
     if (win) {
       if (win.isMinimized()) win.restore();
+      win.show();
       win.focus();
+    } else if (appOrigin !== null) {
+      createWindow();
     }
   });
 }
 
 app.whenReady().then(async () => {
   if (!gotInstanceLock) return;
-  const port = await startServer();
-  appOrigin = `http://127.0.0.1:${port}`;
-  createWindow();
+  try {
+    const port = await startServer();
+    appOrigin = `http://127.0.0.1:${port}`;
+    createWindow();
+  } catch (err) {
+    // Never linger as a windowless background process: it would hold the
+    // single-instance lock and make every later launch silently do nothing.
+    dialog.showErrorBox(
+      'Chess Solver could not start',
+      `The app's local server failed to start:\n\n${err && err.message ? err.message : err}`
+    );
+    app.exit(1);
+  }
 });
 
 // macOS convention: the app stays alive with no windows and reopens one when
