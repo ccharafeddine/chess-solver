@@ -6,15 +6,41 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag to upload assets to (builds from the dispatched branch)'
+        description: 'Existing tag to release and upload assets to (builds from the dispatched branch)'
         required: true
 
 permissions:
   contents: write
 
 jobs:
+  # Creates the GitHub release for a pushed tag if it doesn't exist yet, so
+  # pushing a tag is all a release takes. Notes come from
+  # docs/release-notes/<tag>.md when present, else GitHub's generated notes.
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          notes="docs/release-notes/$TAG.md"
+          if [ -f "$notes" ]; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes"
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi
+
   windows:
     name: Windows portable .exe
+    needs: release
     runs-on: windows-latest
     steps:
       # The Stockfish engine comes from the `stockfish` npm package (npm ci).
@@ -42,6 +68,7 @@ jobs:
 
   macos:
     name: macOS universal .dmg
+    needs: release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
