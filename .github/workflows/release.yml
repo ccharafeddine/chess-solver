@@ -6,15 +6,16 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to release and upload assets to (builds from the dispatched branch)'
+        description: 'Tag to release (created on the dispatched commit if missing); builds from the dispatched branch'
         required: true
 
 permissions:
   contents: write
 
 jobs:
-  # Creates the GitHub release for a pushed tag if it doesn't exist yet, so
-  # pushing a tag is all a release takes. Notes come from
+  # Creates the GitHub release if it doesn't exist yet, so pushing a tag (or
+  # dispatching this workflow with a new tag name, which then tags the
+  # dispatched commit) is all a release takes. Notes come from
   # docs/release-notes/<tag>.md when present, else GitHub's generated notes.
   release:
     name: Create release
@@ -33,9 +34,9 @@ jobs:
           fi
           notes="docs/release-notes/$TAG.md"
           if [ -f "$notes" ]; then
-            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file "$notes"
           else
-            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
           fi
 
   windows:
