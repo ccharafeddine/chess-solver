@@ -28,12 +28,24 @@ export interface AnalyzeOptions {
 // reaching ~30-50% deeper at the same movetime. Bump in the UI for review.
 const DEFAULT_MULTIPV = 1;
 const DEFAULT_MOVETIME_MS = 3000;
+/** Per-position search time choices offered in the UI, in seconds. */
+export const THINK_TIME_CHOICES = [1, 3, 5, 10];
+// 512MB is the largest table that is reliably stable in the 2GB WASM heap
+// alongside the thread stacks; 1GB intermittently crashes the worker.
 const HASH_MB = 512;
-// The 100MB+ WASM binary can take a while to compile on first load.
-const UCIOK_TIMEOUT_MS = 20000;
+// The 100MB+ WASM binary can take a while to compile on first load,
+// especially on slower machines; waiting longer beats failing startup.
+const UCIOK_TIMEOUT_MS = 60000;
+// `stop` is re-sent at this interval until its bestmove arrives. The worker
+// queues `go` while a previous search is still unwinding but executes `stop`
+// immediately, so a single `stop` can land before the `go` it was meant for
+// and be lost; the repeat catches that search as soon as it starts.
+const STOP_RESEND_MS = 100;
 // How long `stop` may take to produce its bestmove before we assume the
-// worker is wedged and rebuild it.
-const STOP_TIMEOUT_MS = 3000;
+// worker is wedged and rebuild it. Rebuilding recompiles the 100MB+ engine
+// and throws away the hash table, so this errs well on the side of patience;
+// a healthy engine answers `stop` within a few milliseconds.
+const STOP_TIMEOUT_MS = 8000;
 // Extra headroom past `go movetime` before the search is considered stuck.
 const GO_GRACE_MS = 4000;
 // A stuck search is retried this many times on a fresh worker before the
@@ -92,6 +104,7 @@ export class StockfishEngine {
 
   private goWatchdogId: ReturnType<typeof setTimeout> | undefined = undefined;
   private stopWatchdogId: ReturnType<typeof setTimeout> | undefined = undefined;
+  private stopResendId: ReturnType<typeof setInterval> | undefined = undefined;
 
   async init(): Promise<void> {
     await this.ensureWorker();
@@ -153,6 +166,9 @@ export class StockfishEngine {
     if (!this.stopRequested) {
       this.stopRequested = true;
       this.send('stop');
+      // Every `stop` sent here precedes the next `go` in the worker's inbox,
+      // so a repeat can never cancel the search that replaces this one.
+      this.stopResendId = setInterval(() => this.send('stop'), STOP_RESEND_MS);
     }
     // If the bestmove acknowledging the stop never arrives, the worker is
     // wedged — rebuild it. `pending` survives the restart and runs after.
@@ -256,10 +272,10 @@ export class StockfishEngine {
       this.worker = worker;
 
       const timeoutId = setTimeout(() => {
-        worker.removeEventListener('message', onReady);
+        worker.removeEventListener('message', onHandshake);
         try { worker.terminate(); } catch { /* ignore */ }
         if (this.worker === worker) this.worker = null;
-        reject(new Error('Engine did not answer uci in time'));
+        reject(new Error('Engine did not finish starting in time'));
       }, UCIOK_TIMEOUT_MS);
 
       worker.onerror = (e) => {
@@ -267,25 +283,37 @@ export class StockfishEngine {
         e.preventDefault();
       };
 
-      const onReady = (e: MessageEvent) => {
+      const threads = pickThreadCount();
+      // uci -> uciok, then configure and wait for readyok. Spawning the
+      // search threads and allocating the hash table happen here, so the
+      // first `go` starts immediately instead of queueing behind them (and
+      // racing its watchdog).
+      const onHandshake = (e: MessageEvent) => {
         const msg: string = typeof e.data === 'string' ? e.data : '';
-        if (!msg.includes('uciok')) return;
+        if (msg.startsWith('uciok')) {
+          worker.postMessage(`setoption name Threads value ${threads}`);
+          // Resizing the hash clears it (using the threads just set), so a
+          // fresh worker needs no `ucinewgame` — that would clear it again.
+          worker.postMessage(`setoption name Hash value ${HASH_MB}`);
+          worker.postMessage('isready');
+          return;
+        }
+        if (!msg.startsWith('readyok')) return;
         clearTimeout(timeoutId);
-        worker.removeEventListener('message', onReady);
+        worker.removeEventListener('message', onHandshake);
+        if (this.worker !== worker) {
+          reject(new Error('Engine was shut down during startup'));
+          return;
+        }
         worker.addEventListener('message', this.onMessage);
 
-        const threads = pickThreadCount();
         this.threads = threads;
-        this.send(`setoption name Threads value ${threads}`);
-        this.send(`setoption name Hash value ${HASH_MB}`);
-        this.send('ucinewgame');
-
         this.ready = true;
         console.log(`[Stockfish] Engine ready (Threads=${threads}, Hash=${HASH_MB}MB)`);
         resolve();
       };
 
-      worker.addEventListener('message', onReady);
+      worker.addEventListener('message', onHandshake);
       worker.postMessage('uci');
     });
   }
@@ -401,6 +429,10 @@ export class StockfishEngine {
     if (this.stopWatchdogId !== undefined) {
       clearTimeout(this.stopWatchdogId);
       this.stopWatchdogId = undefined;
+    }
+    if (this.stopResendId !== undefined) {
+      clearInterval(this.stopResendId);
+      this.stopResendId = undefined;
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "chess-solver",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Desktop chess analysis tool powered by Stockfish 18 — set up any position and get engine-recommended moves with evaluations, tactical motifs, and principal variations.",
   "author": "ccharafeddine",
   "license": "MIT",
@@ -41,7 +41,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["universal"]
+          "arch": [
+            "universal"
+          ]
         }
       ],
       "icon": "build/icon.png",
@@ -49,6 +51,8 @@
     }
   },
   "dependencies": {
+    "@fontsource/dm-sans": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "chess.js": "^1.4.0",
     "react": "^19.2.4",
     "react-chessboard": "^5.10.0",

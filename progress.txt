@@ -1,5 +1,34 @@
 # Chess Solver — Progress
 
+## v1.1.0 (2026-09-24): engine speed/strength + reliability audit
+- The app had been shipping the SINGLE-threaded Stockfish build
+  (public/stockfish.* byte-matched stockfish-18-single), so the Threads
+  option was silently ignored. Now uses the multi-threaded NNUE build
+  (stockfish-18.js/.wasm), ~4x nodes/sec on a 4-core machine.
+- Engine files are no longer committed (no more Git LFS): vite.config.ts's
+  stockfish-engine plugin serves them from node_modules/stockfish/bin in dev
+  and copies them into dist/ on build.
+- Root cause of "no move after moving quickly": the worker queues `go` while
+  a search is still unwinding but runs `stop` immediately, so the stop could
+  be lost; the 3s stop watchdog then restarted the engine (recompiling
+  113MB) and analysis failed. Reproduced in Chromium (16 of 35 rapid
+  positions got no analysis). Fix: `stop` is re-sent every 100ms until its
+  bestmove; stop watchdog raised to 8s; startup waits for readyok after
+  Threads/Hash; redundant ucinewgame dropped (warm start ~3.5s to first
+  move). Regression test in src/engine/stockfish.test.ts with a fake worker
+  that mirrors the real queueing.
+- Hash stays 512MB: 1GB intermittently crashes the 2GB WASM heap. Threads
+  capped at 8 (32 hangs the build).
+- Think time setting (1/3/5/10s) in the settings menu.
+- Update check now also runs automatically at startup (toggle in settings);
+  a banner + gear dot show when a newer release exists, dismissible per
+  version (src/useUpdateCheck.ts).
+- Electron: fixed port 47813 (random fallback) so localStorage settings
+  persist across launches and Chromium's WASM code cache works; files are
+  streamed with ETag/no-cache; single-instance lock.
+- Fonts bundled via @fontsource (Google Fonts was blocked by the app's CSP
+  and COEP in Electron).
+
 ## Current state (2026-07-08): v1.0.0 release prep
 - Engine layer (src/engine/stockfish.ts) rewritten around bestmove accounting:
   no readyok/isready synchronization, pending analysis survives engine
