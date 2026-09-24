@@ -101,3 +101,14 @@ layout needing 1100x850, so the app shipped with a permanent scrollbar.
 and apply it with `setContentSize()`, which takes inner dimensions. Clamp to
 `screen.getDisplayNearestPoint(...).workAreaSize` so it still fits small
 displays.
+
+### Git Bash mangles `/X` style flags into Windows paths
+`./Setup.exe /S` from Git Bash does not reach the program as `/S` - MSYS path
+conversion rewrites it. The NSIS installer therefore ignored the silent flag
+and sat waiting on its GUI, looking like a hang (the tell: 0.5s of CPU over
+49s of elapsed time).
+
+**Rule:** pass `/`-prefixed flags to native Windows executables through
+PowerShell (`Start-Process -ArgumentList '/S' -Wait`) or set
+`MSYS2_ARG_CONV_EXCL='*'`. When a Windows process seems hung, compare its CPU
+time against elapsed time before assuming it is working.
