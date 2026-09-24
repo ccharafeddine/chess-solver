@@ -86,3 +86,29 @@
 - PGN import/export
 - Move history / undo
 - Code signing / notarization
+
+## Packaging size fix (2026-09-23, branch fix/packaging-size)
+- Symptom: downloaded v1.1.0/v1.1.1 portable .exe showed the NSIS splash,
+  then no window. Dev mode, a local package, and the *actual released*
+  v1.1.1 artifact all launch correctly on the dev machine, so this was
+  never a hard crash.
+- Root cause: electron-builder always packs production node_modules
+  regardless of the "files" list. The asar carried all six Stockfish
+  builds from node_modules/stockfish/bin (~360MB) plus the 113MB copy in
+  dist/ that is the one actually served. With win.target = "portable"
+  the whole payload re-extracted to %TEMP% on EVERY launch (measured
+  637-709MB), leaving no window on screen for tens of seconds.
+- Fix: added "!node_modules/**/*" to build.files. Safe because nothing
+  loads from node_modules at runtime (main.cjs uses only electron + node
+  builtins; Vite bundles the renderer into dist/).
+    app.asar 490MB -> 114MB | portable 390MB -> 162MB | %TEMP% 709 -> 452MB
+- Verified after repackaging: window in ~10s, server on :47813, and
+  "[Stockfish] Engine ready (Threads=3, Hash=512MB)" in the packaged build.
+  45 tests pass, lint clean.
+
+## Known quirk: single-instance lock can silently eat launches
+- app.requestSingleInstanceLock() -> app.quit() means a launch while an
+  earlier instance is still unpacking dies silently (splash, then nothing).
+  In v1.1.0 a failed startServer() left a windowless process alive forever
+  holding that lock, blocking every later launch including v1.1.1.
+  v1.1.1 fixes the cause but cannot evict an already-running v1.1.0 zombie.
