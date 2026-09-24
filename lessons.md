@@ -71,3 +71,33 @@ it was still running.
 **Rule:** before timing or verifying a launch, kill all instances and confirm
 the process list is empty. Verify a *positive* signal from the process you
 started (its own log line), never just "a window exists".
+
+## Electron windows
+
+### A "silent no-op" launch is almost always the single-instance lock
+`requestSingleInstanceLock()` returning false followed by a bare `app.quit()`
+gives the user nothing to look at. It is indistinguishable from the app being
+broken, and it persists until the lock holder dies.
+
+**Rule:** never quit silently on a lost lock. Verify the holder is actually
+serving (a liveness probe against a port the primary records in `userData`),
+and if it is not, say so and name the recovery command. Equally: no startup
+path may leave a process alive without a window - bound it with a timeout.
+
+### `show: false` is a no-window bug waiting to happen
+Hiding a window until it has been measured is the right way to avoid a resize
+flash, but if the measuring step throws or never resolves, the window is never
+shown and the app looks dead.
+
+**Rule:** pair every `show: false` with a timer that reveals the window
+regardless, and make the reveal idempotent.
+
+### Size a window by measuring the page, not by guessing
+A hardcoded `height` in `BrowserWindow` is *outer* size; the client area is
+smaller by the frame. `1100x750` gave ~1084x711 of usable space against a
+layout needing 1100x850, so the app shipped with a permanent scrollbar.
+
+**Rule:** measure the real content (`element.getBoundingClientRect().bottom`)
+and apply it with `setContentSize()`, which takes inner dimensions. Clamp to
+`screen.getDisplayNearestPoint(...).workAreaSize` so it still fits small
+displays.

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, screen, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
@@ -24,6 +24,31 @@ const MIME_TYPES = {
 // preferred one can't be used — taken (EADDRINUSE) or, on Windows, inside a
 // range reserved by Hyper-V/WSL/Docker (EACCES).
 const PREFERRED_PORT = 47813;
+
+// If the server never comes up we must not sit there windowless holding the
+// single-instance lock, so startup is bounded.
+const SERVER_START_TIMEOUT_MS = 20000;
+
+// A launch that loses the lock probes the running instance before giving up.
+// The primary may still be starting, so allow a few attempts.
+const PROBE_ATTEMPTS = 6;
+const PROBE_TIMEOUT_MS = 1000;
+const PROBE_INTERVAL_MS = 500;
+
+// The layout is a fixed 1100px column (.app max-width) plus its 16px gutters,
+// so anything narrower squeezes the board and anything shorter than the
+// content leaves a scrollbar down the side for the whole session. These are
+// only the fallback: the window measures its own content before it is shown.
+const CONTENT_WIDTH = 1100;
+const FALLBACK_CONTENT_HEIGHT = 900;
+const CONTENT_BOTTOM_GUTTER = 24;
+const MIN_CONTENT_WIDTH = 640;
+const MIN_CONTENT_HEIGHT = 480;
+
+// The window starts hidden so it can be sized before it appears. This bounds
+// how long that can possibly take: a hidden window is just another way to
+// look like the app never opened.
+const WINDOW_REVEAL_TIMEOUT_MS = 5000;
 
 // 'wasm-unsafe-eval' and blob: workers are required by the multi-threaded
 // Stockfish build; connect-src allows the GitHub update check.
@@ -107,6 +132,17 @@ function handleRequest(req, res) {
 
 function startServer() {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`The local server did not start within ${SERVER_START_TIMEOUT_MS / 1000}s.`)),
+      SERVER_START_TIMEOUT_MS
+    );
+    const settle = (fn) => (value) => {
+      clearTimeout(timer);
+      fn(value);
+    };
+    resolve = settle(resolve);
+    reject = settle(reject);
+
     const server = http.createServer(handleRequest);
     const listen = (port) => server.listen(port, '127.0.0.1');
     server.once('listening', () => resolve(server.address().port));
@@ -133,16 +169,85 @@ app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
 let appOrigin = null;
 
+// Size the window to whatever the page actually needs, capped to the display's
+// work area. Measuring beats a hardcoded height: the analysis panel's height
+// depends on the saved "lines" setting, so no single default suits every user.
+async function fitToContent(win) {
+  let width = CONTENT_WIDTH;
+  let height = FALLBACK_CONTENT_HEIGHT;
+  try {
+    const measured = await win.webContents.executeJavaScript(
+      `(() => {
+         const app = document.querySelector('.app');
+         const bottom = app ? app.getBoundingClientRect().bottom + window.scrollY : 0;
+         return {
+           width: Math.ceil(Math.max(app ? app.scrollWidth : 0, document.documentElement.scrollWidth)),
+           height: Math.ceil(bottom),
+         };
+       })()`
+    );
+    if (measured && measured.height > 0) {
+      width = Math.max(width, measured.width);
+      height = measured.height + CONTENT_BOTTOM_GUTTER;
+    }
+  } catch {
+    /* fall back to the constants above */
+  }
+
+  const { workAreaSize } = screen.getDisplayNearestPoint(win.getBounds());
+  width = Math.max(MIN_CONTENT_WIDTH, Math.min(width, workAreaSize.width));
+  height = Math.max(MIN_CONTENT_HEIGHT, Math.min(height, workAreaSize.height));
+
+  console.log(`[window] content ${width}x${height} (work area ${workAreaSize.width}x${workAreaSize.height})`);
+  win.setContentSize(width, height);
+  win.center();
+
+  // The whole point is opening without a scrollbar, so say so when the fit
+  // failed - which on a short display is expected and unavoidable.
+  try {
+    const overflow = await win.webContents.executeJavaScript(
+      'document.documentElement.scrollHeight - document.documentElement.clientHeight'
+    );
+    if (overflow > 0) {
+      console.warn(`[window] content still overflows by ${overflow}px after fitting`);
+    }
+  } catch {
+    /* diagnostic only */
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1100,
-    height: 750,
+    width: CONTENT_WIDTH,
+    height: FALLBACK_CONTENT_HEIGHT,
+    minWidth: MIN_CONTENT_WIDTH,
+    minHeight: MIN_CONTENT_HEIGHT,
     title: 'Chess Solver',
+    // Stay hidden until it has been sized, so there is no visible resize jump.
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
     },
+  });
+
+  let shown = false;
+  const reveal = () => {
+    if (shown) return;
+    shown = true;
+    win.show();
+  };
+  const revealTimer = setTimeout(reveal, WINDOW_REVEAL_TIMEOUT_MS);
+  win.on('closed', () => clearTimeout(revealTimer));
+
+  win.webContents.once('did-finish-load', async () => {
+    try {
+      await fitToContent(win);
+    } finally {
+      clearTimeout(revealTimer);
+      reveal();
+    }
   });
 
   // External links (e.g. release downloads from the update check) open in
@@ -172,12 +277,72 @@ function createWindow() {
   }
 }
 
+// The running instance records where to reach it. Advisory only: every read
+// and write is best-effort, and a missing or stale file simply means the probe
+// below reports the instance as unreachable.
+function instanceFile() {
+  return path.join(app.getPath('userData'), 'instance.json');
+}
+
+function writeInstanceRecord(port) {
+  try {
+    fs.writeFileSync(instanceFile(), JSON.stringify({ port, pid: process.pid }));
+  } catch {
+    /* not worth failing a launch over */
+  }
+}
+
+function clearInstanceRecord() {
+  try {
+    fs.unlinkSync(instanceFile());
+  } catch {
+    /* already gone */
+  }
+}
+
+function readInstanceRecord() {
+  try {
+    const record = JSON.parse(fs.readFileSync(instanceFile(), 'utf8'));
+    return typeof record.port === 'number' ? record : null;
+  } catch {
+    return null;
+  }
+}
+
+function probeOnce(port) {
+  return new Promise((resolve) => {
+    const req = http.request(
+      { host: '127.0.0.1', port, path: '/', method: 'HEAD', timeout: PROBE_TIMEOUT_MS },
+      (res) => {
+        res.resume();
+        resolve(true);
+      }
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+// Whether the instance holding the lock is actually serving. A healthy primary
+// answers and raises its own window, which makes this launch redundant.
+async function primaryIsResponding() {
+  const record = readInstanceRecord();
+  if (!record) return false;
+  for (let i = 0; i < PROBE_ATTEMPTS; i++) {
+    if (await probeOnce(record.port)) return true;
+    await new Promise((done) => setTimeout(done, PROBE_INTERVAL_MS));
+  }
+  return false;
+}
+
 // One instance at a time: a second launch would start a second engine
 // competing for the same CPU cores. Focus the existing window instead.
 const gotInstanceLock = app.requestSingleInstanceLock();
-if (!gotInstanceLock) {
-  app.quit();
-} else {
+if (gotInstanceLock) {
   app.on('second-instance', () => {
     const [win] = BrowserWindow.getAllWindows();
     if (win) {
@@ -188,13 +353,37 @@ if (!gotInstanceLock) {
       createWindow();
     }
   });
+  app.on('will-quit', clearInstanceRecord);
+}
+
+// Losing the lock used to mean app.quit() and a silent disappearance. When the
+// instance holding the lock was wedged - windowless, or still starting - that
+// was indistinguishable from the app refusing to open, with nothing on screen
+// to explain it. Stay quiet only after confirming the running instance is
+// alive and therefore about to surface its own window.
+async function deferToRunningInstance() {
+  if (await primaryIsResponding()) {
+    app.exit(0);
+    return;
+  }
+  dialog.showErrorBox(
+    'Chess Solver is already running',
+    'Another copy of Chess Solver is running but is not responding, so this launch was stopped.\n\n' +
+      'End any "Chess Solver" entries in Task Manager, then start Chess Solver again.\n\n' +
+      'From a terminal: taskkill /IM "Chess Solver.exe" /F'
+  );
+  app.exit(1);
 }
 
 app.whenReady().then(async () => {
-  if (!gotInstanceLock) return;
+  if (!gotInstanceLock) {
+    await deferToRunningInstance();
+    return;
+  }
   try {
     const port = await startServer();
     appOrigin = `http://127.0.0.1:${port}`;
+    writeInstanceRecord(port);
     createWindow();
   } catch (err) {
     // Never linger as a windowless background process: it would hold the

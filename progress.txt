@@ -135,3 +135,27 @@
   does that now, and that recipe is what created the stale install).
 - updates.ts reads only tag_name/html_url, so renaming the Windows artifact
   to "Chess Solver Setup <version>.exe" does not affect the update check.
+
+## v1.1.3: window fits its content; lock failures are no longer silent (2026-09-24)
+- Window sizing: createWindow now opens with show:false, waits for
+  did-finish-load, measures the .app element's bottom, and setContentSize()s
+  to that (+24px gutter) clamped to the display work area, then centers and
+  shows. Measured need is 1100x850; the old default was width/height
+  1100x750 *outer*, i.e. ~1084x711 of client area, which is why a vertical
+  scrollbar was present from launch. minWidth/minHeight 640x480.
+  A WINDOW_REVEAL_TIMEOUT_MS=5000 fallback shows the window even if
+  measuring stalls, so show:false cannot itself become a no-window bug.
+  fitToContent logs "[window] content WxH" and warns if overflow remains.
+- Single-instance lock: losing the lock used to call app.quit() and vanish.
+  Now the primary records {port,pid} in userData/instance.json (cleared on
+  will-quit), and a launch that loses the lock HEAD-probes that port
+  (6 attempts, 1s timeout, 500ms apart). Responding -> exit(0) silently,
+  since the primary raises its own window. Not responding -> error dialog
+  naming the taskkill command, then exit(1).
+- startServer() now rejects after SERVER_START_TIMEOUT_MS=20000 so the
+  primary can never sit windowless holding the lock forever.
+- Verified all four paths: healthy primary (second launch exit 0 in 1s, no
+  dialog); wedged primary simulated with a stub app that takes the lock and
+  starts no server, plus a stale instance.json pointing at a dead port
+  (dialog shown, exit 1); record written with the live port during a run and
+  cleared on graceful quit; left behind on SIGKILL, which the probe handles.
