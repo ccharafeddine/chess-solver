@@ -60,3 +60,14 @@ every iteration.
 **Rule:** an empty/negative result from a probe must be confirmed by a probe
 known to produce a positive. Assume 5.1 on Windows: no `Join-String`, no
 `&&`/`||`, no ternary, no `-AsHashtable`.
+
+### Kill every running instance before timing a cold start
+A startup measurement read "window up in 1s" that was actually detecting a
+*different*, already-running instance; the process just launched had hit the
+single-instance lock and quit. The giveaway was an empty log plus exit code 0.
+Related tell: `rm` reporting "Device or resource busy" on the old binary meant
+it was still running.
+
+**Rule:** before timing or verifying a launch, kill all instances and confirm
+the process list is empty. Verify a *positive* signal from the process you
+started (its own log line), never just "a window exists".

@@ -112,3 +112,26 @@
   In v1.1.0 a failed startServer() left a windowless process alive forever
   holding that lock, blocking every later launch including v1.1.1.
   v1.1.1 fixes the cause but cannot evict an already-running v1.1.0 zombie.
+
+## v1.1.2: Windows switched from portable to NSIS installer (2026-09-23)
+- win.target changed "portable" -> "nsis". The portable target re-unpacked
+  the whole payload to %TEMP% on EVERY launch; nsis unpacks once at install.
+- nsis config: oneClick false (assisted, user picks the directory),
+  perMachine false (installs to %LOCALAPPDATA%\Programs\Chess Solver, so no
+  UAC prompt for the unsigned binary), desktop + Start Menu shortcuts,
+  installer/uninstaller icons from build/icon.ico.
+- build/splash.bmp deleted: its only consumer was portable.splashImage.
+- Measured on the installed app, cold start, no other instance running:
+    window + "[Stockfish] Engine ready (Threads=3, Hash=512MB)" in under 2s
+    (was 10-15s), and 0 bytes extracted to %TEMP% (was 637-709MB per launch).
+- Installer verified end to end: installs to %LOCALAPPDATA%\Programs\
+  Chess Solver (452MB on disk, once), writes desktop + Start Menu shortcuts,
+  registers "Chess Solver 1.1.2" under HKCU uninstall with a /currentuser
+  uninstall string. It also overwrote the stale hand-made desktop shortcut
+  that still pointed at the abandoned %LOCALAPPDATA%\ChessSolver build.
+- Windows download: 304MB (v1.1.1) -> ~165MB.
+- README: download/build sections rewritten; the manual Copy-Item +
+  WScript.Shell "install as desktop app" recipe removed (the installer
+  does that now, and that recipe is what created the stale install).
+- updates.ts reads only tag_name/html_url, so renaming the Windows artifact
+  to "Chess Solver Setup <version>.exe" does not affect the update check.

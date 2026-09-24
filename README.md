@@ -78,7 +78,7 @@ The same three steps run in CI on every push and pull request.
 
 Prebuilt binaries are on the [releases page](https://github.com/ccharafeddine/chess-solver/releases/latest):
 
-- **Windows** — `Chess.Solver.<version>.exe`, a portable single-file build. Download and run (SmartScreen may warn on first run because the binary is unsigned; choose "More info → Run anyway").
+- **Windows** — `Chess.Solver.Setup.<version>.exe`, a per-user installer (no administrator rights required). Run it and the app is added to the Start Menu with a desktop shortcut (SmartScreen may warn on first run because the binary is unsigned; choose "More info → Run anyway").
 - **macOS** — `Chess.Solver-<version>-universal.dmg`, a universal (Intel + Apple Silicon) disk image. The app is not notarized, so on first launch right-click the app → **Open** → **Open** to get past Gatekeeper.
 
 Release binaries are built by the [release workflow](.github/workflows/release.yml) on tagged commits.
@@ -100,7 +100,7 @@ npm run dist
 
 Builds for the platform you run it on and outputs to `release/`:
 
-- **On Windows:** `release/Chess Solver <version>.exe` — single-file portable build (movable to USB / other machines) — plus `release/win-unpacked/`, the unpacked app folder used as the source for desktop installs
+- **On Windows:** `release/Chess Solver Setup <version>.exe` — per-user NSIS installer — plus `release/win-unpacked/`, the unpacked app folder it installs from
 - **On macOS:** `release/Chess Solver-<version>-universal.dmg` — universal disk image for Intel and Apple Silicon
 
 `.dmg` files can only be built on macOS; CI's release workflow uses a macOS runner for that.
@@ -116,24 +116,15 @@ Run the first build under one of those conditions. Subsequent builds reuse the c
 
 ## Install as a Desktop App (Windows)
 
-After running `npm run dist`, you can install the app for the current user so it has a desktop and Start Menu shortcut and survives future rebuilds:
+`npm run dist` produces the installer itself — run `release/Chess Solver Setup <version>.exe`.
 
-```powershell
-Copy-Item -Recurse -Force `
-  "$PWD\release\win-unpacked" `
-  "$env:LOCALAPPDATA\ChessSolver"
+It installs per user into `%LOCALAPPDATA%\Programs\Chess Solver` (no administrator
+rights, no UAC prompt), creates desktop and Start Menu shortcuts, and registers an entry
+under **Settings -> Apps** so it can be uninstalled normally. Re-running a newer
+installer upgrades in place.
 
-$ws = New-Object -ComObject WScript.Shell
-foreach ($dir in @([Environment]::GetFolderPath('Desktop'), "$env:APPDATA\Microsoft\Windows\Start Menu\Programs")) {
-  $lnk = $ws.CreateShortcut("$dir\Chess Solver.lnk")
-  $lnk.TargetPath = "$env:LOCALAPPDATA\ChessSolver\Chess Solver.exe"
-  $lnk.WorkingDirectory = "$env:LOCALAPPDATA\ChessSolver"
-  $lnk.IconLocation = "$env:LOCALAPPDATA\ChessSolver\Chess Solver.exe,0"
-  $lnk.Save()
-}
-```
-
-To pin to the taskbar, right-click the desktop shortcut → **Pin to taskbar** (Windows blocks programmatic taskbar pinning).
+To pin to the taskbar, right-click the desktop shortcut -> **Pin to taskbar** (Windows
+blocks programmatic taskbar pinning).
 
 ## App Icon
 

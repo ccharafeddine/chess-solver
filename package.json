@@ -1,7 +1,7 @@
 {
   "name": "chess-solver",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Desktop chess analysis tool powered by Stockfish 18 — set up any position and get engine-recommended moves with evaluations, tactical motifs, and principal variations.",
   "author": "ccharafeddine",
   "license": "MIT",
@@ -35,11 +35,19 @@
     ],
     "extraResources": [],
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "build/icon.ico"
     },
-    "portable": {
-      "splashImage": "build/splash.bmp"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Chess Solver",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
     },
     "mac": {
       "target": [
