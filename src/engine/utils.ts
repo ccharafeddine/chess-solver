@@ -163,13 +163,16 @@ function expandFenToGrid(fen: string): string[][] | null {
   return grid;
 }
 
+// Two decimals, not one: a single decimal rounds to the nearest 0.1 pawn, so
+// everything from +0.25 to +0.34 rendered as "+0.3". That hid up to 9
+// centipawns of real difference and made distinct moves look tied.
 export function formatEval(cp: number, mate: number | null): string {
   if (mate !== null) {
     return `M${Math.abs(mate)}`;
   }
 
   const sign = cp >= 0 ? '+' : '';
-  return `${sign}${(cp / 100).toFixed(1)}`;
+  return `${sign}${(cp / 100).toFixed(2)}`;
 }
 
 export function evalColor(cp: number, mate: number | null): string {

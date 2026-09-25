@@ -159,3 +159,22 @@
   starts no server, plus a stale instance.json pointing at a dead port
   (dialog shown, exit 1); record written with the live port during a run and
   cleared on graceful quit; left behind on SIGKILL, which the probe handles.
+
+## Evaluation precision raised to 2 decimals (2026-09-25)
+- formatEval (src/engine/utils.ts) used toFixed(1), rounding to the nearest
+  0.1 pawn. Everything from +0.25 to +0.34 rendered "+0.3", hiding up to 9
+  centipawns and making distinct moves look tied at the top of the list.
+  Now toFixed(2).
+- Layout is unaffected: .line-eval is monospace inside a flex row with no
+  width constraint, and the window still fits at content 1100x850 with no
+  overflow warning.
+- Verified in the running app over CDP on the start position, 3 lines:
+    Best | e4  | +0.31
+    2nd  | d4  | +0.24
+    3rd  | Nf3 | +0.24
+  Under the old format those read +0.3 / +0.2 / +0.2. d4 and Nf3 are a
+  genuine tie at this depth; e4's edge over d4 is now visible as 7cp rather
+  than a rounding step.
+- Note for future tie questions: nothing in this repo breaks ties. The UI
+  labels index 0 "Best" (AnalysisPanel RANK_LABELS) and sortedLines() sorts
+  by Stockfish's own multipv index, never by score.

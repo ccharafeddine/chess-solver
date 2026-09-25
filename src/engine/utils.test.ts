@@ -73,9 +73,17 @@ describe('isKingInCheck', () => {
 
 describe('formatEval', () => {
   it('formats centipawns as pawns with a sign', () => {
-    expect(formatEval(40, null)).toBe('+0.4');
-    expect(formatEval(-120, null)).toBe('-1.2');
-    expect(formatEval(0, null)).toBe('+0.0');
+    expect(formatEval(40, null)).toBe('+0.40');
+    expect(formatEval(-120, null)).toBe('-1.20');
+    expect(formatEval(0, null)).toBe('+0.00');
+  });
+
+  it('keeps near-equal scores distinguishable', () => {
+    // One decimal rendered this whole range as "+0.3", which made genuinely
+    // different moves look tied at the top of the analysis list.
+    expect(formatEval(25, null)).toBe('+0.25');
+    expect(formatEval(34, null)).toBe('+0.34');
+    expect(formatEval(30, null)).not.toBe(formatEval(39, null));
   });
 
   it('formats mate scores', () => {
