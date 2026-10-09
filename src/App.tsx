@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Chess, validateFen } from 'chess.js';
 import Board from './components/Board';
 import PieceSelector from './components/PieceSelector';
@@ -88,7 +88,7 @@ export default function App() {
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   // Analysis output is keyed by the FEN it was computed for. Results for any
   // other position are simply not displayed, so stale engine output can never
-  // be shown against the wrong board — no token bookkeeping required.
+  // be shown against the wrong board â€” no token bookkeeping required.
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [engineWarning, setEngineWarning] = useState<EngineWarning | null>(null);
   const [analysisMeta, setAnalysisMeta] = useState<AnalysisMeta>({ depth: 0, nps: 0, threads: 0 });
@@ -208,7 +208,7 @@ export default function App() {
       engineRef.current.analyze(analysisFen, (lines: AnalysisLine[], meta: AnalysisMeta, isFinal: boolean) => {
         setAnalysisMeta(meta);
 
-        // Drop lines that are not legal in this position — a defense against
+        // Drop lines that are not legal in this position â€” a defense against
         // stale engine output. Only applicable when chess.js can load the
         // position at all; for editor-built positions it can't validate
         // (e.g. pawns on the back rank), trust the engine's own legality.
@@ -234,7 +234,7 @@ export default function App() {
           setAnalysisResult({ fen: analysisFen, lines: [], final: true });
           setEngineWarning({
             fen: analysisFen,
-            message: 'The engine did not return analysis for this position. Click ↻ to retry.',
+            message: 'The engine did not return analysis for this position. Click â†» to retry.',
           });
           return;
         }
@@ -420,7 +420,7 @@ export default function App() {
           aria-label="Toggle dark mode"
         >
           <span className="theme-toggle-icon">
-            {theme === 'light' ? '☀' : '☾'}
+            {theme === 'light' ? 'â˜€' : 'â˜¾'}
           </span>
           <span className="theme-toggle-track">
             <span className="theme-toggle-knob" />
@@ -465,17 +465,6 @@ export default function App() {
             onSelectPiece={setSelectedPiece}
             selectedPiece={selectedPiece}
           />
-          <NotationPanel
-            fen={fen}
-            moves={game.moves}
-            cursor={game.cursor}
-            fenError={fenError}
-            pgnError={pgnError}
-            onLoadFen={handleLoadFen}
-            onJump={handleJump}
-            onImportPgn={handleImportPgn}
-            onExportPgn={handleExportPgn}
-          />
         </div>
 
         <div className="analysis-section">
@@ -493,6 +482,17 @@ export default function App() {
             onMakeMove={handleMakeMove}
             onHighlightMove={(from, to) => setHighlightSquares({ from, to })}
             onClearHighlight={() => setHighlightSquares(null)}
+          />
+          <NotationPanel
+            fen={fen}
+            moves={game.moves}
+            cursor={game.cursor}
+            fenError={fenError}
+            pgnError={pgnError}
+            onLoadFen={handleLoadFen}
+            onJump={handleJump}
+            onImportPgn={handleImportPgn}
+            onExportPgn={handleExportPgn}
           />
         </div>
       </main>

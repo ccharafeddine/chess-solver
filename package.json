@@ -1,7 +1,7 @@
 {
   "name": "chess-solver",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Desktop chess analysis tool powered by Stockfish 18 — set up any position and get engine-recommended moves with evaluations, tactical motifs, and principal variations.",
   "author": "ccharafeddine",
   "license": "GPL-3.0-only",
