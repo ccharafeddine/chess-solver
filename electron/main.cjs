@@ -356,6 +356,25 @@ if (gotInstanceLock) {
   app.on('will-quit', clearInstanceRecord);
 }
 
+function alreadyRunningInstructions() {
+  if (process.platform === 'darwin') {
+    return (
+      'Open Activity Monitor, search for "Chess Solver", and quit it, then start Chess Solver again.\n\n' +
+      'From a terminal: killall "Chess Solver"'
+    );
+  }
+  if (process.platform === 'win32') {
+    return (
+      'End any "Chess Solver" entries in Task Manager, then start Chess Solver again.\n\n' +
+      'From a terminal: taskkill /IM "Chess Solver.exe" /F'
+    );
+  }
+  return (
+    'Quit the existing Chess Solver process, then start it again.\n\n' +
+    'From a terminal: pkill -f "Chess Solver"'
+  );
+}
+
 // Losing the lock used to mean app.quit() and a silent disappearance. When the
 // instance holding the lock was wedged - windowless, or still starting - that
 // was indistinguishable from the app refusing to open, with nothing on screen
@@ -369,8 +388,7 @@ async function deferToRunningInstance() {
   dialog.showErrorBox(
     'Chess Solver is already running',
     'Another copy of Chess Solver is running but is not responding, so this launch was stopped.\n\n' +
-      'End any "Chess Solver" entries in Task Manager, then start Chess Solver again.\n\n' +
-      'From a terminal: taskkill /IM "Chess Solver.exe" /F'
+      alreadyRunningInstructions()
   );
   app.exit(1);
 }

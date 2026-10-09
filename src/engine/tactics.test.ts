@@ -37,4 +37,12 @@ describe('detectTactics', () => {
     const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     expect(detectTactics(start, 'e2e4')).toHaveLength(0);
   });
+
+  it('does not throw when chess.js rejects the position', () => {
+    // White pawn on a1. The editor can build this; tactic labels are skipped
+    // so analysis can still render the engine line.
+    const fen = '8/8/8/8/8/8/4k3/P6K w - - 0 1';
+    expect(() => detectTactics(fen, 'a1a2')).not.toThrow();
+    expect(detectTactics(fen, 'a1a2')).toEqual([]);
+  });
 });

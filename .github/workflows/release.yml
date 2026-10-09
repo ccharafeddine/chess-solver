@@ -40,7 +40,7 @@ jobs:
           fi
 
   windows:
-    name: Windows portable .exe
+    name: Windows installer
     needs: release
     runs-on: windows-latest
     steps:
@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build portable exe
+      - name: Build installer
         # --publish never: assets are uploaded with gh below; without it,
         # electron-builder's CI detection tries to publish and fails.
         run: npm run dist -- --publish never

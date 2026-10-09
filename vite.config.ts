@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import { createReadStream, copyFileSync, readFileSync, statSync } from 'node:fs'
+import { createReadStream, copyFileSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -51,6 +51,15 @@ function stockfishEngine(): Plugin {
       for (const [name, file] of Object.entries(ENGINE_FILES)) {
         copyFileSync(join(ENGINE_DIR, file.source), join(outDir, name))
       }
+      // The packaged app serves dist/. The stockfish npm package's own
+      // Copying.txt is dropped by electron-builder's node_modules exclusion,
+      // so put the GPL and the notices next to the engine here.
+      const licensesDir = join(outDir, 'licenses')
+      mkdirSync(licensesDir, { recursive: true })
+      const root = fileURLToPath(new URL('./', import.meta.url))
+      copyFileSync(join(root, 'LICENSE'), join(licensesDir, 'GPL-3.0.txt'))
+      copyFileSync(join(root, 'THIRD_PARTY_NOTICES'), join(licensesDir, 'THIRD_PARTY_NOTICES.txt'))
+      copyFileSync(join(ENGINE_DIR, '..', 'Copying.txt'), join(licensesDir, 'stockfish-Copying.txt'))
     },
   }
 }

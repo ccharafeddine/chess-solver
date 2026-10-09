@@ -305,9 +305,14 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
-.control-btn:hover {
+.control-btn:hover:not(:disabled) {
   background: var(--border);
   border-color: var(--accent);
+}
+
+.control-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .turn-btn {
@@ -333,6 +338,153 @@
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* ---- FEN / PGN ---- */
+.notation-panel {
+  margin-top: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.notation-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.notation-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.notation-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.fen-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.fen-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.fen-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.notation-error {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--warning);
+}
+
+.notation-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 4px 0 2px;
+}
+
+.move-list {
+  max-height: 160px;
+  overflow: auto;
+  margin-top: 6px;
+}
+
+.move-row {
+  display: grid;
+  grid-template-columns: 2.2em 1fr 1fr;
+  gap: 4px;
+  align-items: center;
+}
+
+.move-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.move-san {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.move-san:hover {
+  background: var(--hover-bg);
+}
+
+.move-san-active {
+  background: var(--active-bg);
+  font-weight: 600;
+}
+
+.notation-nav,
+.notation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pgn-paste {
+  margin-top: 8px;
+}
+
+.pgn-paste summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pgn-paste textarea {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  min-height: 72px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pgn-paste textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* (analyzing indicator moved to analysis panel header) */

@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/ccharafeddine/chess-solver/actions/workflows/ci.yml"><img src="https://github.com/ccharafeddine/chess-solver/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/ccharafeddine/chess-solver/releases/latest"><img src="https://img.shields.io/github/v/release/ccharafeddine/chess-solver?include_prereleases&label=release" alt="Latest release" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0" /></a>
 </p>
 
 <p align="center">
@@ -43,6 +43,9 @@
 ## Features
 
 - Drag-and-drop piece movement with click-to-place editing
+- Paste a FEN to load a position, and copy the current FEN
+- Import a PGN game (file or paste), step through it, and export the current game
+- Move list with back, forward, start, and end
 - Stockfish 18 analysis on all your CPU cores (multi-threaded NNUE build), streaming results so the best move so far appears within milliseconds of each move
 - 1 / 3 / 5 candidate lines (fewer lines = deeper search), with eval bars and depth info
 - Adjustable think time per position (1s / 3s / 5s / 10s)
@@ -147,7 +150,35 @@ Both scripts use GDI+ with no external dependencies. Rerun `npm run dist` afterw
 6. Click any analysis line to play that move on the board.
 7. Hover over a line to highlight the move on the board.
 8. Use **Reset** to restore the starting position or **Clear** to empty the board.
-9. Open the **⚙ settings menu** (top left) to change the engine's think time, see the app version, or check for updates. A dot on the gear and a banner under the header mean a new release is available.
+9. Paste a FEN into the field under the piece palette and press **Load**. **Copy** puts the current position on the clipboard. A FEN the board cannot represent shows an error and does not change the position.
+10. **Import PGN** reads a `.pgn` file. **Paste PGN** does the same from text. The move list starts at the beginning of the game; use the arrows or click a move to step through it. **Export PGN** downloads the current game. Import keeps the main line.
+11. Open the **⚙ settings menu** (top left) to change the engine's think time, see the app version, or check for updates. A dot on the gear and a banner under the header mean a new release is available.
+
+## How it's built
+
+Chess Solver is an Electron desktop app. The window loads the React UI from a small static server in the main process (`electron/main.cjs`), bound to `127.0.0.1`. Every response from that server sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Browsers only expose `SharedArrayBuffer` on a cross-origin-isolated page, and the multi-threaded Stockfish build needs it to start its pthread workers. Electron's window does not reliably apply those headers (`crossOriginIsolated` stays false), so the main process also enables `SharedArrayBuffer` with a Chromium command-line switch before the app is ready. The dev server sends the same two headers.
+
+The engine is the Stockfish 18 multi-threaded NNUE build from the `stockfish` npm package. It is not committed to the repo. In development, Vite serves `stockfish-18.js` and `stockfish-18.wasm` from `node_modules`. The production build copies them into `dist/` as `stockfish.js` and `stockfish.wasm`. The UI runs that script in a Web Worker (`src/engine/stockfish.ts`) and speaks UCI to it.
+
+The board is React, drawn with react-chessboard. Legal play goes through chess.js, which keeps castling rights, en passant, and the move counters. The piece editor is allowed to build positions a real game cannot reach, including ones chess.js refuses to load. Those edits go through the raw FEN helpers in `src/engine/fen.ts`.
+
+### Lost stops, and restarting a stuck search
+
+Stockfish answers every `go` with exactly one `bestmove`. The worker queues a new `go` while the previous search is still unwinding, but it runs `stop` immediately. One `stop` can therefore arrive before the `go` it was meant to cancel, and that search continues with nothing waiting on it. The engine treats that as a lost stop: it sends `stop` again every 100ms until the matching `bestmove` arrives. If none arrives within 8 seconds, the worker is taken to be stuck, torn down, and started again. The position the user asked for is held in a pending slot and runs on the new worker, so a restart does not need a manual refresh. A second watchdog covers a `go` that never answers at all, and retries that search once before reporting failure. Rebuilding the worker recompiles the WASM binary (about 113 MB) and clears the hash table, so both timeouts wait longer than a healthy engine needs.
+
+### Why the Windows download got smaller
+
+The v1.1.1 portable `.exe` was a 304 MB download. electron-builder was packing every Stockfish build shipped in `node_modules` next to the single copy in `dist/` that the app actually loads. Excluding `node_modules` from the package, then switching Windows from a portable executable (it unpacked its whole payload on every launch) to a per-user NSIS installer, brought that download to about 165 MB. Those two figures are the ones recorded with that change.
+
+## Limitations and roadmap
+
+- Windows and macOS builds are unsigned and not notarized, so SmartScreen and Gatekeeper warn on first launch.
+- The editor can produce positions a game cannot reach. Analysis still runs when the board has one king of each color and eight ranks of eight squares. Tactic labels are omitted when chess.js rejects the FEN, which is what a pawn on the first or eighth rank does.
+- PGN import follows the main line. Variations, comments, and annotations are dropped, and export writes that main line back out.
+- Opening names come from a table of common positions in the app, not a full opening book.
+- There is no online play and no engine-versus-engine mode.
+
+Still to do: code signing and notarization, and PGN variations and comments.
 
 ## Tech Stack
 
@@ -159,6 +190,14 @@ Both scripts use GDI+ with no external dependencies. Rerun `npm run dist` afterw
 - Electron for desktop runtime, electron-builder for packaging
 - Vitest for unit tests, GitHub Actions for CI
 
-## License
+## License and credits
 
-[MIT](LICENSE)
+Chess Solver is free software under the GNU General Public License, version 3 only. See [LICENSE](LICENSE).
+
+The desktop app bundles Stockfish 18, which is itself under the GNU GPL version 3. An MIT license on this repository did not cover distributing that engine, so the project is GPL-3.0-only. [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) names the other components and their licenses.
+
+The Stockfish developers write the engine: <https://github.com/official-stockfish/Stockfish>. The WebAssembly build comes from stockfish.js by Nathan Rugg (npm package `stockfish`): <https://github.com/nmrugg/stockfish.js>.
+
+Packaged builds carry the GPL text, the third-party notices, and the `Copying.txt` from the stockfish package. They are placed in `resources/licenses/` beside the app, and again under `dist/licenses/` inside the app archive. The packager's `!node_modules/**/*` exclusion would otherwise omit the package's own license file; those copies are what replace it.
+
+Source for this application: <https://github.com/ccharafeddine/chess-solver>

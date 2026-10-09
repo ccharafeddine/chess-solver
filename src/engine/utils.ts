@@ -168,7 +168,10 @@ function expandFenToGrid(fen: string): string[][] | null {
 // centipawns of real difference and made distinct moves look tied.
 export function formatEval(cp: number, mate: number | null): string {
   if (mate !== null) {
-    return `M${Math.abs(mate)}`;
+    // Same sign convention as centipawn scores: a mate against the side to
+    // move is negative. Math.abs here used to print both as "M3".
+    const sign = mate < 0 ? '-' : '';
+    return `${sign}M${Math.abs(mate)}`;
   }
 
   const sign = cp >= 0 ? '+' : '';

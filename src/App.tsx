@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Chess, validateFen, type Square } from 'chess.js';
+import { Chess, validateFen } from 'chess.js';
 import Board from './components/Board';
 import PieceSelector from './components/PieceSelector';
 import BoardControls from './components/BoardControls';
 import AnalysisPanel from './components/AnalysisPanel';
+import NotationPanel from './components/NotationPanel';
 import SettingsMenu from './components/SettingsMenu';
 import { useUpdateCheck } from './useUpdateCheck';
 import type { AnalysisLineDisplay } from './components/AnalysisPanel';
@@ -19,9 +20,28 @@ import {
   isAnalyzable,
 } from './engine/fen';
 import { uciToSan, isKingInCheck, detectGameEnd } from './engine/utils';
-import { detectTactics } from './engine/tactics';
+import { detectTactics, type TacticalMotif } from './engine/tactics';
 import { lookupOpening } from './engine/openings';
+import {
+  appendMove,
+  emptyGame,
+  fenAt,
+  legalMove,
+  moveSquares,
+  parseFenInput,
+  parsePgn,
+  serializePgn,
+  type GameState,
+} from './engine/notation';
 import './App.css';
+
+function tacticsFor(fen: string, move: string): TacticalMotif[] {
+  try {
+    return detectTactics(fen, move);
+  } catch {
+    return [];
+  }
+}
 
 function computeBoardWidth(): number {
   const w = window.innerWidth;
@@ -41,8 +61,22 @@ interface EngineWarning {
   message: string;
 }
 
+function downloadText(filename: string, contents: string, type: string) {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function App() {
-  const [fen, setFen] = useState(START_FEN);
+  const [game, setGame] = useState<GameState>(() => emptyGame(START_FEN));
+  const [fenError, setFenError] = useState<string | null>(null);
+  const [pgnError, setPgnError] = useState<string | null>(null);
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
   const [highlightSquares, setHighlightSquares] = useState<{
     from: string;
@@ -78,7 +112,13 @@ export default function App() {
   const engineRef = useRef<StockfishEngine | null>(null);
 
   // Everything below derives from the position, so a rendered frame can never
-  // pair one position's board with another position's analysis.
+  // pair one position's board with another position's analysis. The displayed
+  // FEN is the game line replayed up to the cursor, so back/forward and a
+  // pasted FEN cannot drift apart from the board.
+  const fen = useMemo(
+    () => fenAt(game.startFen, game.moves, game.cursor),
+    [game],
+  );
   const turn: 'w' | 'b' = fen.split(' ')[1] === 'b' ? 'b' : 'w';
   const analyzable = useMemo(() => isAnalyzable(fen), [fen]);
   const gameEndMessage = useMemo(() => detectGameEnd(fen), [fen]);
@@ -209,7 +249,7 @@ export default function App() {
           mate: line.mate,
           depth: line.depth,
           pv: line.pv,
-          tactics: detectTactics(analysisFen, line.move),
+          tactics: tacticsFor(analysisFen, line.move),
         }));
 
         setAnalysisResult({ fen: analysisFen, lines: displayLines, final: isFinal });
@@ -227,65 +267,66 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [fen, analyzable, gameEndMessage, illegalWarning, runAnalysis]);
 
+  // An edit that is not a legal move starts a new line at that position.
+  // The previous game is no longer the one on the board.
+  const replacePosition = (nextFen: string) => {
+    setGame(emptyGame(nextFen));
+    setFenError(null);
+    setPgnError(null);
+  };
+
   const handleSquareClick = (square: string) => {
     if (!selectedPiece) return;
 
     if (selectedPiece === 'REMOVE') {
-      setFen(editBoard(fen, square, null));
+      replacePosition(editBoard(fen, square, null));
     } else {
-      setFen(editBoard(fen, square, selectedPiece));
+      replacePosition(editBoard(fen, square, selectedPiece));
     }
   };
 
-  // Apply a move via chess.js when the position and move are legal — this
-  // produces a fully correct FEN (castling rights, en passant, move counters)
-  // — and let the caller fall back to raw board editing otherwise.
-  const applyMove = (from: string, to: string, promotion?: string): boolean => {
-    try {
-      const chess = new Chess(fen);
-      const move = chess.move({
-        from: from as Square,
-        to: to as Square,
-        promotion: promotion ?? 'q',
-      });
-      if (move) {
-        setFen(chess.fen());
-        setHighlightSquares({ from, to });
-        return true;
-      }
-    } catch {
-      // Position or move not legal for chess.js.
-    }
-    return false;
+  const recordLegalMove = (san: string, from: string, to: string) => {
+    setGame((current) => appendMove(current, san));
+    setHighlightSquares({ from, to });
+    setFenError(null);
+    setPgnError(null);
   };
 
   const handlePieceDrop = (from: string, to: string): boolean => {
     if (from === to) return false;
-    if (applyMove(from, to)) return true;
-    setFen(movePiece(fen, from, to));
+    const played = legalMove(fen, from, to);
+    if (played) {
+      recordLegalMove(played.san, played.from, played.to);
+      return true;
+    }
+    replacePosition(movePiece(fen, from, to));
     return true;
   };
 
   const handleToggleTurn = () => {
     const newTurn = turn === 'w' ? 'b' : 'w';
     const boardPart = fen.split(' ')[0];
-    setFen(buildFen(boardPart, newTurn));
+    replacePosition(buildFen(boardPart, newTurn));
   };
 
   const handleReset = () => {
-    setFen(START_FEN);
+    replacePosition(START_FEN);
     setSelectedPiece(null);
     setHighlightSquares(null);
   };
 
   const handleClear = () => {
-    setFen(EMPTY_FEN);
+    replacePosition(EMPTY_FEN);
     setSelectedPiece(null);
     setHighlightSquares(null);
   };
 
   const handleMakeMove = (from: string, to: string, promotion?: string) => {
-    if (applyMove(from, to, promotion)) return;
+    const played = legalMove(fen, from, to, promotion);
+    if (played) {
+      recordLegalMove(played.san, played.from, played.to);
+      return;
+    }
 
     // Fallback for edited positions chess.js can't validate: move the piece
     // manually, apply promotion, and flip the turn.
@@ -296,8 +337,47 @@ export default function App() {
     }
     const newTurn = turn === 'w' ? 'b' : 'w';
     const boardPart = newFen.split(' ')[0];
-    setFen(buildFen(boardPart, newTurn));
+    replacePosition(buildFen(boardPart, newTurn));
     setHighlightSquares({ from, to });
+  };
+
+  const handleJump = (cursor: number) => {
+    const next = Math.max(0, Math.min(game.moves.length, cursor));
+    setGame({ ...game, cursor: next });
+    setHighlightSquares(moveSquares(game.startFen, game.moves, next));
+  };
+
+  const handleLoadFen = (text: string) => {
+    const result = parseFenInput(text);
+    if (!result.ok) {
+      setFenError(result.error);
+      return;
+    }
+    replacePosition(result.value);
+    setSelectedPiece(null);
+    setHighlightSquares(null);
+  };
+
+  const handleImportPgn = (text: string) => {
+    const result = parsePgn(text);
+    if (!result.ok) {
+      setPgnError(result.error);
+      return;
+    }
+    setGame({
+      startFen: result.value.startFen,
+      moves: result.value.moves,
+      cursor: 0,
+      headers: result.value.headers,
+    });
+    setFenError(null);
+    setPgnError(null);
+    setSelectedPiece(null);
+    setHighlightSquares(null);
+  };
+
+  const handleExportPgn = () => {
+    downloadText('chess-solver.pgn', serializePgn(game), 'application/x-chess-pgn');
   };
 
   const handleFlipBoard = () => {
@@ -384,6 +464,17 @@ export default function App() {
           <PieceSelector
             onSelectPiece={setSelectedPiece}
             selectedPiece={selectedPiece}
+          />
+          <NotationPanel
+            fen={fen}
+            moves={game.moves}
+            cursor={game.cursor}
+            fenError={fenError}
+            pgnError={pgnError}
+            onLoadFen={handleLoadFen}
+            onJump={handleJump}
+            onImportPgn={handleImportPgn}
+            onExportPgn={handleExportPgn}
           />
         </div>
 
