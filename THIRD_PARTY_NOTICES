@@ -1,0 +1,92 @@
+Chess Solver
+Copyright (C) 2026 ccharafeddine
+
+Chess Solver is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, version 3 of the License only. The full
+license text is the LICENSE file in this repository.
+
+This application is distributed with the Stockfish 18 chess engine
+(the multi-threaded NNUE WebAssembly build). Stockfish is free software
+under the GNU GPL, version 3. The engine is part of the binaries this
+project ships, so those binaries are released under the GPL as well.
+
+Source code for Chess Solver:
+https://github.com/ccharafeddine/chess-solver
+
+Packaged builds include:
+
+- LICENSE, and a copy at resources/licenses/GPL-3.0.txt
+- this file, and a copy at resources/licenses/THIRD_PARTY_NOTICES.txt
+- the stockfish npm package's Copying.txt, at
+  resources/licenses/stockfish-Copying.txt
+- the same three files inside the app archive, under dist/licenses/
+
+The packager excludes node_modules, which would otherwise drop the
+engine package's own license file. The copies above are how that
+license travels with the binary.
+
+========================================================================
+Stockfish
+========================================================================
+
+The Stockfish chess engine, version 18.
+Copyright (C) The Stockfish developers.
+
+Source: https://github.com/official-stockfish/Stockfish
+Authors: https://github.com/official-stockfish/Stockfish/blob/master/AUTHORS
+License: GNU General Public License, version 3
+https://www.gnu.org/licenses/gpl-3.0.html
+
+========================================================================
+stockfish.js (npm package "stockfish", 18.0.5)
+========================================================================
+
+WebAssembly port of Stockfish. This application runs the large
+multi-threaded build (stockfish-18.js and stockfish-18.wasm), shipped
+as stockfish.js and stockfish.wasm.
+
+Copyright (C) 2026, Chess.com, LLC
+Author: Nathan Rugg
+
+Source: https://github.com/nmrugg/stockfish.js
+License: GNU General Public License, version 3 (Copying.txt)
+
+========================================================================
+chess.js 1.4.0
+========================================================================
+
+Copyright (c) Jeff Hlywa
+Source: https://github.com/jhlywa/chess.js
+License: BSD 2-Clause
+
+========================================================================
+React and React DOM
+========================================================================
+
+Copyright (c) Meta Platforms, Inc. and affiliates.
+Source: https://github.com/facebook/react
+License: MIT
+
+========================================================================
+react-chessboard
+========================================================================
+
+Source: https://github.com/Clariity/react-chessboard
+License: MIT
+
+========================================================================
+Electron
+========================================================================
+
+Desktop shell. Source: https://github.com/electron/electron
+License: MIT
+
+========================================================================
+Fonts
+========================================================================
+
+DM Sans and JetBrains Mono, packaged via @fontsource/dm-sans and
+@fontsource/jetbrains-mono.
+License: SIL Open Font License 1.1
+https://scripts.sil.org/OFL

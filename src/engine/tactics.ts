@@ -327,7 +327,14 @@ function detectDiscoveredAttack(
 export function detectTactics(fen: string, moveUci: string): TacticalMotif[] {
   const motifs: TacticalMotif[] = [];
 
-  const before = new Chess(fen);
+  // The editor allows positions chess.js rejects (a pawn on rank 1 or 8).
+  // Tactic labels are skipped for those; the caller still shows the line.
+  let before: Chess;
+  try {
+    before = new Chess(fen);
+  } catch {
+    return motifs;
+  }
   const fromSq = moveUci.slice(0, 2) as Square;
   const toSq = moveUci.slice(2, 4) as Square;
   const promotion = moveUci.length > 4 ? moveUci[4] : undefined;

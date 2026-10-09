@@ -75,6 +75,26 @@ describe('movePiece', () => {
     const fen = movePiece(castleReady, 'e1', 'c1');
     expect(fen.split(' ')[0]).toBe('r3k2r/8/8/8/8/8/8/2KR3R');
   });
+
+  it('moves the black rook when the king castles and the rook is there', () => {
+    const castleReady = 'r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1';
+    const fen = movePiece(castleReady, 'e8', 'g8');
+    expect(fen.split(' ')[0]).toBe('r4rk1/8/8/8/8/8/8/4K3');
+  });
+
+  it('does not castle from the starting position when the path is blocked', () => {
+    // Ke1-g1 is two squares, and a rook sits on h1, but the bishop and
+    // knight are in the way. Sliding the king must not invent a rook on f1
+    // or delete the h1 rook.
+    const fen = movePiece(START_FEN, 'e1', 'g1');
+    expect(fen.split(' ')[0]).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1BKR');
+  });
+
+  it('does not invent a rook when the king slides two squares and none is there', () => {
+    const bare = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const fen = movePiece(bare, 'e1', 'g1');
+    expect(fen.split(' ')[0]).toBe('4k3/8/8/8/8/8/8/6K1');
+  });
 });
 
 describe('hasBothColors / hasKings', () => {

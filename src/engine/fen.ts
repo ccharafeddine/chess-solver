@@ -45,6 +45,30 @@ function getPieceAt(expanded: string[], file: number, rank: number): string {
   return expanded[rank][file];
 }
 
+function castleMove(
+  expanded: string[],
+  piece: string,
+  fromFile: number,
+  fromRank: number,
+  toFile: number,
+  toRank: number,
+): boolean {
+  if (piece !== 'K' && piece !== 'k') return false;
+  if (fromRank !== toRank || fromFile !== 4) return false;
+  if (Math.abs(toFile - fromFile) !== 2) return false;
+
+  const kingside = toFile > fromFile;
+  const rookChar = piece === 'K' ? 'R' : 'r';
+  const rookFile = kingside ? 7 : 0;
+  if (expanded[fromRank][rookFile] !== rookChar) return false;
+
+  const step = kingside ? 1 : -1;
+  for (let file = fromFile + step; file !== rookFile; file += step) {
+    if (expanded[fromRank][file] !== '.') return false;
+  }
+  return true;
+}
+
 function computeCastling(expanded: string[]): string {
   let castling = '';
   // White: king on e1 (file 4, rank 7)
@@ -94,6 +118,14 @@ export function movePiece(fen: string, from: string, to: string): string {
   const piece = expanded[fromRank][fromFile];
   if (piece === '.') return fen;
 
+  // A two-square king slide is castling only when it really is one: the king
+  // starts on the e-file, the corner rook is still there, and every square
+  // between them is empty. Anything else (no rook, or the start position,
+  // where the bishop and knight block Ke1-g1) must move the king alone.
+  // Treating every two-square slide as castling created a rook on the
+  // bishop's square and deleted the piece on the corner.
+  const castle = castleMove(expanded, piece, fromFile, fromRank, toFile, toRank);
+
   // Clear source square
   const srcRow = expanded[fromRank].split('');
   srcRow[fromFile] = '.';
@@ -104,18 +136,14 @@ export function movePiece(fen: string, from: string, to: string): string {
   destRow[toFile] = piece;
   expanded[toRank] = destRow.join('');
 
-  // Detect castling: king moves exactly 2 files on the same rank
-  if ((piece === 'K' || piece === 'k') && fromRank === toRank && Math.abs(toFile - fromFile) === 2) {
+  if (castle) {
+    const kingside = toFile > fromFile;
+    const rookChar = piece === 'K' ? 'R' : 'r';
+    const rookFromFile = kingside ? 7 : 0;
+    const rookToFile = kingside ? 5 : 3;
     const castleRow = expanded[fromRank].split('');
-    if (toFile > fromFile) {
-      // Kingside: move rook from h-file (7) to f-file (5)
-      castleRow[7] = '.';
-      castleRow[5] = piece === 'K' ? 'R' : 'r';
-    } else {
-      // Queenside: move rook from a-file (0) to d-file (3)
-      castleRow[0] = '.';
-      castleRow[3] = piece === 'K' ? 'R' : 'r';
-    }
+    castleRow[rookFromFile] = '.';
+    castleRow[rookToFile] = rookChar;
     expanded[fromRank] = castleRow.join('');
   }
 

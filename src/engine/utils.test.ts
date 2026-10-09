@@ -86,9 +86,9 @@ describe('formatEval', () => {
     expect(formatEval(30, null)).not.toBe(formatEval(39, null));
   });
 
-  it('formats mate scores', () => {
+  it('formats mate scores with a sign', () => {
     expect(formatEval(0, 3)).toBe('M3');
-    expect(formatEval(0, -2)).toBe('M2');
+    expect(formatEval(0, -2)).toBe('-M2');
   });
 });
 
