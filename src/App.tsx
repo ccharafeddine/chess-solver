@@ -5,7 +5,9 @@ import PieceSelector from './components/PieceSelector';
 import BoardControls from './components/BoardControls';
 import AnalysisPanel from './components/AnalysisPanel';
 import NotationPanel from './components/NotationPanel';
-import SettingsMenu from './components/SettingsMenu';
+import SettingsMenu, { GearIcon } from './components/SettingsMenu';
+import { useTheme } from './theme/useTheme';
+import logoUrl from './assets/logo.svg';
 import { useUpdateCheck } from './useUpdateCheck';
 import type { AnalysisLineDisplay } from './components/AnalysisPanel';
 import { StockfishEngine, THINK_TIME_CHOICES } from './engine/stockfish';
@@ -43,11 +45,27 @@ function tacticsFor(fen: string, move: string): TacticalMotif[] {
   }
 }
 
+// The board fills the window: as tall as the space under the header allows
+// (leaving room for its controls and the piece row), and on wide screens as
+// wide as the space left of a ~460px analysis column. Whole multiples of 8 keep
+// every square the same size.
+const BOARD_CHROME_HEIGHT = 246;
+const ANALYSIS_COLUMN = 460;
 function computeBoardWidth(): number {
   const w = window.innerWidth;
-  if (w >= 1024) return 480;
-  if (w >= 768) return 400;
-  return Math.min(w - 32, 400);
+  const h = window.innerHeight;
+  const raw =
+    w >= 1100
+      ? Math.min(h - BOARD_CHROME_HEIGHT, Math.min(w, 1680) - ANALYSIS_COLUMN - 110)
+      : Math.min(w - 64, 640);
+  const size = Math.max(w >= 1100 ? 320 : 240, Math.min(raw, 860));
+  return Math.floor(size / 8) * 8;
+}
+
+// The analysis list is one fixed height (it scrolls inside), chosen so the
+// right column lines up with the board column. It never changes move to move.
+function analysisHeight(boardWidth: number): number {
+  return window.innerWidth >= 1100 ? Math.max(220, boardWidth - 300) : 360;
 }
 
 interface AnalysisResult {
@@ -88,17 +106,12 @@ export default function App() {
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   // Analysis output is keyed by the FEN it was computed for. Results for any
   // other position are simply not displayed, so stale engine output can never
-  // be shown against the wrong board â€” no token bookkeeping required.
+  // be shown against the wrong board — no token bookkeeping required.
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [engineWarning, setEngineWarning] = useState<EngineWarning | null>(null);
   const [analysisMeta, setAnalysisMeta] = useState<AnalysisMeta>({ depth: 0, nps: 0, threads: 0 });
-  // Follow the OS color scheme until the user explicitly toggles a theme;
-  // an explicit choice is persisted and wins from then on.
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('chess-solver-theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const theme = useTheme();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [multiPV, setMultiPV] = useState<number>(() => {
     const saved = parseInt(localStorage.getItem('chess-solver-multipv') ?? '1', 10);
     return [1, 3, 5].includes(saved) ? saved : 1;
@@ -169,23 +182,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  // Track live OS theme changes while the user hasn't picked a theme.
-  useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!mq) return;
-    const onChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem('chess-solver-theme')) {
-        setTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('chess-solver-multipv', String(multiPV));
   }, [multiPV]);
 
@@ -208,7 +204,7 @@ export default function App() {
       engineRef.current.analyze(analysisFen, (lines: AnalysisLine[], meta: AnalysisMeta, isFinal: boolean) => {
         setAnalysisMeta(meta);
 
-        // Drop lines that are not legal in this position â€” a defense against
+        // Drop lines that are not legal in this position — a defense against
         // stale engine output. Only applicable when chess.js can load the
         // position at all; for editor-built positions it can't validate
         // (e.g. pawns on the back rank), trust the engine's own legality.
@@ -234,7 +230,7 @@ export default function App() {
           setAnalysisResult({ fen: analysisFen, lines: [], final: true });
           setEngineWarning({
             fen: analysisFen,
-            message: 'The engine did not return analysis for this position. Click â†» to retry.',
+            message: 'The engine did not return analysis for this position. Click ↻ to retry.',
           });
           return;
         }
@@ -384,14 +380,6 @@ export default function App() {
     setOrientation((o) => (o === 'white' ? 'black' : 'white'));
   };
 
-  const handleToggleTheme = () => {
-    setTheme((t) => {
-      const next = t === 'light' ? 'dark' : 'light';
-      localStorage.setItem('chess-solver-theme', next);
-      return next;
-    });
-  };
-
   const handleReanalyze = useCallback(() => {
     setEngineWarning(null);
     setAnalysisResult(null);
@@ -402,31 +390,37 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="app-header-left">
-          <SettingsMenu
-            thinkTimeSec={thinkTimeSec}
-            onThinkTimeChange={setThinkTimeSec}
-            updateState={updates.state}
-            updateAvailable={updates.available !== null}
-            onCheckForUpdates={updates.check}
-            autoCheck={updates.autoCheck}
-            onAutoCheckChange={updates.setAutoCheck}
-          />
-          <h1>Chess Solver</h1>
-        </div>
+        <h1>
+          <img className="brand-mark" src={logoUrl} alt="" width="30" height="30" />
+          Chess Solver
+        </h1>
         <button
-          className="theme-toggle"
-          onClick={handleToggleTheme}
-          aria-label="Toggle dark mode"
+          className="icon-btn settings-gear"
+          id="settings"
+          onClick={() => setSettingsOpen(true)}
+          aria-label={updates.available ? 'Settings (update available)' : 'Settings'}
+          title={updates.available ? 'Settings: update available' : 'Settings'}
         >
-          <span className="theme-toggle-icon">
-            {theme === 'light' ? 'â˜€' : 'â˜¾'}
-          </span>
-          <span className="theme-toggle-track">
-            <span className="theme-toggle-knob" />
-          </span>
+          <GearIcon />
+          {updates.available && <span className="settings-update-dot" aria-hidden="true" />}
         </button>
       </header>
+
+      <SettingsMenu
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        skin={theme.skin}
+        onSkinChange={theme.setSkin}
+        mode={theme.mode}
+        onModeChange={theme.setMode}
+        thinkTimeSec={thinkTimeSec}
+        onThinkTimeChange={setThinkTimeSec}
+        updateState={updates.state}
+        updateAvailable={updates.available !== null}
+        onCheckForUpdates={updates.check}
+        autoCheck={updates.autoCheck}
+        onAutoCheckChange={updates.setAutoCheck}
+      />
 
       {updates.showBanner && updates.available && (
         <div className="update-banner" role="status">
@@ -443,7 +437,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="app-main">
+      <main className="app-main" style={{ '--analysis-h': `${analysisHeight(boardWidth)}px` } as React.CSSProperties}>
         <div className="board-section">
           <Board
             position={fen}

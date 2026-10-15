@@ -1,88 +1,95 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/*
+ * Base styles. Every colour, gradient, radius, shadow and blur comes from a
+ * token in theme/tokens.css, so switching skin never touches this file or
+ * App.css. theme.test.ts checks components only use declared tokens.
+ */
+
+@import './theme/tokens.css';
+
+/* Title face: Bungee (SIL OFL, src/assets/fonts), bundled so it works offline
+   and inside the desktop app's CSP. Each skin dresses it through --title-shadow. */
+@font-face { font-family: 'Bungee'; src: url('./assets/fonts/bungee-latin-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-family: var(--font); color: var(--text); background-color: var(--bg); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/* The page never shifts sideways when its scrollbar comes or goes: always keep room for it. */
+html { scrollbar-gutter: stable; }
+@supports not (scrollbar-gutter: stable) { html { overflow-y: scroll; } }
+body { min-height: 100vh; font-size: 15px; line-height: 1.45; }
+/* Backdrop (sky, grid, paper) on a fixed layer behind everything. */
+body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: var(--bg-image); pointer-events: none; }
+/* Optional paper grain (matte), tiled on its own layer. */
+body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: var(--texture); background-size: 120px 120px; pointer-events: none; }
+#root { min-height: 100vh; }
+a { color: var(--link); }
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--text-muted); font-size: 0.85rem; }
+
+/* ---------- surfaces ---------- */
+.surface, .app-header, dialog {
+  background: var(--corner-art), var(--surface);
+  border: var(--border-w) solid var(--surface-border);
+  box-shadow: var(--edge-detail), var(--surface-highlight), 0 0 0 1px var(--surface-edge), var(--shadow-1);
+  backdrop-filter: blur(var(--blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.3);
 }
 
-:root,
-[data-theme="light"] {
-  --bg: #d4c4a8;
-  --bg-card: #e8dcc8;
-  --border: #c4b498;
-  --accent: #7b6b4e;
-  --accent-hover: #5e4f38;
-  --text: #3a3226;
-  --text-dim: #8a7d6b;
-  --text-heading: #2a2218;
-  --eval-winning: #2e7d32;
-  --eval-slight-advantage: #558b2f;
-  --eval-equal: #7a7060;
-  --eval-slight-disadvantage: #e65100;
-  --eval-losing: #c62828;
-  --warning: #b71c1c;
-  --warning-bg: rgba(183, 28, 28, 0.08);
-  --opening-text: #5d4e00;
-  --opening-bg: rgba(123, 107, 78, 0.1);
-  --star: #b8960c;
-  --hover-bg: rgba(123, 107, 78, 0.08);
-  --active-bg: rgba(123, 107, 78, 0.15);
-  --eval-bar-dark: #3a3226;
-  --eval-bar-light: #f5f0e8;
-  --piece-white: #fff;
-  --piece-white-shadow: #555;
-  --piece-black: #1a1a1a;
-  --toggle-bg: #c4b498;
-  --toggle-knob: #fff;
+/* ---------- controls ---------- */
+button, select, input, textarea { font: inherit; color: inherit; }
+/* Native option popups (Chromium on Windows) ignore gradients: give them solid colours from the skin. */
+select option, select optgroup { color: var(--select-text); background-color: var(--select-bg); }
+button, select {
+  position: relative; color: var(--btn-text); background: var(--btn-bg); border: var(--border-w) solid var(--btn-border); border-radius: var(--corner-control);
+  padding: 6px 14px; font-size: 0.88rem; font-weight: 500; cursor: pointer; box-shadow: var(--btn-shadow);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.08s, filter 0.15s;
 }
+button:hover:not(:disabled) { background: var(--btn-bg-hover); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: var(--btn-press-shadow); }
+button:disabled { opacity: 0.45; cursor: default; filter: saturate(0.4); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, summary:focus-visible { outline: none; box-shadow: var(--focus); }
+button.primary, button[aria-pressed='true'], [role='radio'][aria-checked='true'] {
+  color: var(--text-on-accent); background: var(--btn-primary-bg); border-color: var(--btn-primary-border); }
+button.primary:hover:not(:disabled), button[aria-pressed='true']:hover:not(:disabled), [role='radio'][aria-checked='true']:hover:not(:disabled) { background: var(--btn-primary-hover); }
+/* Gloss: a soft highlight over the top half of buttons (only skins with --btn-gloss show it). */
+button::after { content: ''; position: absolute; left: 6%; right: 6%; top: 1px; height: 46%; border-radius: inherit; background: var(--btn-gloss); pointer-events: none; opacity: 0.7; }
+.icon-btn { width: 36px; height: 36px; padding: 0; display: inline-grid; place-items: center; border-radius: var(--corner-control); }
+.icon-btn svg { width: 19px; height: 19px; }
+/* Every select has its own tokens for each state, so generic button hover and gloss rules never touch it. */
+select { padding-right: 28px; appearance: none; color: var(--select-text); background-color: var(--select-bg);
+  --chev: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-image: var(--chev); background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+select:hover, select:focus-visible, select:active, select:focus { color: var(--select-hover-text); background-color: var(--select-hover-bg);
+  background-image: var(--chev); background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+input[type='text'], input:not([type]), textarea {
+  color: var(--text); background: var(--surface-2); border: var(--border-w) solid var(--btn-border); border-radius: var(--corner-control);
+  box-shadow: inset 0 1px 3px rgb(0 30 60 / 0.18); }
+/* Segmented groups: one outline, inner corners squared. */
+.group { display: inline-flex; border-radius: var(--corner-control); box-shadow: var(--btn-shadow); }
+.group button { border-radius: 0; box-shadow: none; }
+.group button + button { border-left: none; }
+.group button:first-child { border-radius: var(--corner-control-start); }
+.group button:last-child { border-radius: var(--corner-control-end); }
+/* Toggle switches. */
+input[type='checkbox'] { appearance: none; flex: none; width: 38px; height: 22px; border-radius: var(--radius-pill); cursor: pointer; position: relative;
+  background: var(--surface-2); border: var(--border-w) solid var(--btn-border); box-shadow: inset 0 1px 3px rgb(0 30 60 / 0.25); transition: background 0.2s; }
+input[type='checkbox']::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--btn-bg); border: var(--border-w) solid var(--btn-border); box-shadow: var(--btn-shadow); transition: transform 0.2s; }
+input[type='checkbox']:checked { background: var(--btn-green-bg); border-color: var(--btn-green-border); }
+input[type='checkbox']:checked::after { transform: translateX(16px); }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: 0.88rem; cursor: pointer; }
 
-[data-theme="dark"] {
-  --bg: #1a1c24;
-  --bg-card: #22252f;
-  --border: #333849;
-  --accent: #8b9ad4;
-  --accent-hover: #a0addf;
-  --text: #bfc3d0;
-  --text-dim: #6b7085;
-  --text-heading: #e0e3ec;
-  --eval-winning: #66bb6a;
-  --eval-slight-advantage: #9ccc65;
-  --eval-equal: #8a8e9a;
-  --eval-slight-disadvantage: #ffa726;
-  --eval-losing: #ef5350;
-  --warning: #ef5350;
-  --warning-bg: rgba(239, 83, 80, 0.1);
-  --opening-text: #f0d060;
-  --opening-bg: rgba(240, 208, 96, 0.08);
-  --star: #f0d060;
-  --hover-bg: rgba(139, 154, 212, 0.06);
-  --active-bg: rgba(139, 154, 212, 0.15);
-  --eval-bar-dark: #333;
-  --eval-bar-light: #e0e0e0;
-  --piece-white: #e8e8e8;
-  --piece-white-shadow: #222;
-  --piece-black: #1a1a1a;
-  --toggle-bg: #333849;
-  --toggle-knob: #e0e3ec;
-}
+/* ---------- dialog ---------- */
+dialog { color: var(--text); border-radius: var(--corner-panel); margin: auto; width: min(620px, calc(100vw - 24px)); max-height: calc(100vh - 32px); overflow-y: auto;
+  padding: 18px 22px 20px; box-shadow: var(--edge-detail), var(--surface-highlight), var(--shadow-pop); background: var(--corner-art), var(--surface-solid); clip-path: var(--panel-clip); }
+dialog::backdrop { background: var(--dialog-backdrop); backdrop-filter: blur(3px); }
+dialog h2 { font-size: 1.15rem; }
+dialog h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 18px 0 8px; padding-top: 12px; border-top: var(--border-w) solid var(--line); }
+dialog p { margin: 6px 0; }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; }
 
-body {
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--text);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background 0.2s, color 0.2s;
-}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
-:root {
-  --sans: 'DM Sans', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
-}
-
-#root {
-  min-height: 100vh;
-}
+/* Neubrutalism: bold labels, buttons sink into their hard shadow when pressed. */
+:root[data-skin='brutal'] button { font-weight: 700; }
+:root[data-skin='brutal'] button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: var(--btn-press-shadow); }
+@media (prefers-reduced-motion: reduce) { :root[data-skin='brutal'] button:active:not(:disabled) { transform: none; } }

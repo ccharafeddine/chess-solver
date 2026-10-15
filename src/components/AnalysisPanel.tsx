@@ -131,6 +131,7 @@ export default function AnalysisPanel({
         </div>
       </div>
 
+      <div className="analysis-body">
       {gameEndMessage && (
         <div className="game-end-bar">{gameEndMessage}</div>
       )}
@@ -197,7 +198,7 @@ export default function AnalysisPanel({
                       <span
                         key={ti}
                         className="tactic-badge"
-                        style={{ backgroundColor: TACTIC_COLORS[t.type] }}
+                        style={{ '--tactic': TACTIC_COLORS[t.type] } as React.CSSProperties}
                         title={t.description}
                       >
                         {t.type.replace('_', ' ')}
@@ -211,6 +212,7 @@ export default function AnalysisPanel({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
