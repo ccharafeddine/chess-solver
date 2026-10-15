@@ -35,13 +35,12 @@ const PROBE_ATTEMPTS = 6;
 const PROBE_TIMEOUT_MS = 1000;
 const PROBE_INTERVAL_MS = 500;
 
-// The layout is a fixed 1100px column (.app max-width) plus its 16px gutters,
-// so anything narrower squeezes the board and anything shorter than the
-// content leaves a scrollbar down the side for the whole session. These are
-// only the fallback: the window measures its own content before it is shown.
-const CONTENT_WIDTH = 1100;
-const FALLBACK_CONTENT_HEIGHT = 900;
-const CONTENT_BOTTOM_GUTTER = 24;
+// The layout is responsive: the board grows with the window and the analysis
+// panel scrolls inside a fixed height, so there is no single "content size".
+// Open at a comfortable size that suits the wide layout, capped to the work
+// area; the user can resize freely from there.
+const CONTENT_WIDTH = 1480;
+const FALLBACK_CONTENT_HEIGHT = 940;
 const MIN_CONTENT_WIDTH = 640;
 const MIN_CONTENT_HEIGHT = 480;
 
@@ -169,31 +168,11 @@ app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
 let appOrigin = null;
 
-// Size the window to whatever the page actually needs, capped to the display's
-// work area. Measuring beats a hardcoded height: the analysis panel's height
-// depends on the saved "lines" setting, so no single default suits every user.
+// Size the window for the wide layout, capped to the display's work area. The
+// page fills whatever size it gets, so there is nothing to measure.
 async function fitToContent(win) {
   let width = CONTENT_WIDTH;
   let height = FALLBACK_CONTENT_HEIGHT;
-  try {
-    const measured = await win.webContents.executeJavaScript(
-      `(() => {
-         const app = document.querySelector('.app');
-         const bottom = app ? app.getBoundingClientRect().bottom + window.scrollY : 0;
-         return {
-           width: Math.ceil(Math.max(app ? app.scrollWidth : 0, document.documentElement.scrollWidth)),
-           height: Math.ceil(bottom),
-         };
-       })()`
-    );
-    if (measured && measured.height > 0) {
-      width = Math.max(width, measured.width);
-      height = measured.height + CONTENT_BOTTOM_GUTTER;
-    }
-  } catch {
-    /* fall back to the constants above */
-  }
-
   const { workAreaSize } = screen.getDisplayNearestPoint(win.getBounds());
   width = Math.max(MIN_CONTENT_WIDTH, Math.min(width, workAreaSize.width));
   height = Math.max(MIN_CONTENT_HEIGHT, Math.min(height, workAreaSize.height));
