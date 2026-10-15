@@ -4,6 +4,10 @@ import { createReadStream, copyFileSync, mkdirSync, readFileSync, statSync } fro
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ENGINE_FILES, type EngineTarget } from './src/engine/engineFiles'
+import { applySiteUrl } from './src/build/siteMeta'
+
+// Absolute link-preview URLs only when SITE_URL is set at build time (see src/build/siteMeta.ts).
+const siteUrl = { name: 'site-url', transformIndexHtml: (html: string) => applySiteUrl(html, process.env.SITE_URL) }
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
@@ -65,7 +69,7 @@ function stockfishEngine(target: EngineTarget): Plugin {
 // the lite engine; every other mode is the desktop build with the full engine.
 // See src/engine/engineFiles.ts.
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), stockfishEngine(mode === 'web' ? 'web' : 'desktop')],
+  plugins: [siteUrl, react(), stockfishEngine(mode === 'web' ? 'web' : 'desktop')],
   base: './',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

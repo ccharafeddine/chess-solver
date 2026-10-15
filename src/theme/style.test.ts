@@ -87,10 +87,11 @@ describe('brand', () => {
     for (const f of ['../assets/logo.svg', '../../public/favicon.svg', '../../public/icon-192.png', '../../public/icon-512.png', '../../public/og-image.png', '../../build/icon.png', '../../build/icon.ico'])
       expect(existsSync(new URL(f, import.meta.url)), f).toBe(true);
     const html = read('../../index.html');
-    // Link previews need absolute URLs on the deployed domain.
-    expect(html).toContain('<meta property="og:url" content="https://chess.chafic.me/" />');
-    expect(html).toContain('<meta name="twitter:image" content="https://chess.chafic.me/og-image.png" />');
-    const og = /property="og:image" content="https:\/\/chess\.chafic\.me\/([^"]+)"/.exec(html);
+    // Domain-independent: relative paths and no og:url in the source; SITE_URL at build time makes them absolute.
+    expect(html).not.toContain('og:url');
+    expect(html).not.toMatch(/chafic\.me/);
+    expect(html).toContain('<meta name="twitter:image" content="./og-image.png" />');
+    const og = /property="og:image" content="\.\/([^"]+)"/.exec(html);
     expect(og).not.toBeNull();
     expect(existsSync(new URL(`../../public/${og![1]}`, import.meta.url))).toBe(true);
   });
