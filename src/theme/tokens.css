@@ -1,0 +1,379 @@
+/*
+ * Design tokens. Components (App.css) use only these variables, so a skin is
+ * just a block of values. Skins: matte (default), aero, neon and brutal, each
+ * with light and dark. The board squares and the piece set read the --sq-* and
+ * --pc-* tokens, so each skin dresses the board too.
+ *
+ * Every skin block must define the same set of variables, and every variant
+ * keeps its text AA-readable; theme.test.ts checks both.
+ */
+
+/* ---------- Matte textured, light (default): paper grain, soft light ---------- */
+:root, :root[data-skin='matte'] {
+  --select-bg: #f7f4ee; --select-text: #22201c; --select-hover-bg: #ebe4d6; --select-hover-text: #22201c;
+  /* Corners: small, crafted radii with a hairline double-line edge. */
+  --corner-panel: 4px; --corner-card: 3px; --corner-control: 3px; --corner-chip: 2px;
+  --title-shadow: none; --title-spacing: 0.03em;
+  --corner-control-start: 3px 0 0 3px; --corner-control-end: 0 3px 3px 0;
+  --edge-detail: inset 0 0 0 3px var(--surface-solid), inset 0 0 0 4px var(--line);
+  --corner-art: none;
+  --panel-clip: none;
+  --border-w: 1px;
+  --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --text: #22201c; --text-muted: #6b665c; --text-on-accent: #ffffff; --link: #8a4b14;
+  --accent: #b5651d; --accent-2: #8a4b14; --accent-green: #5d7d3a; --accent-soft: rgb(181 101 29 / 0.12);
+  --good: #4c7a2a; --bad: #b3261e;
+  --line: #d9d3c7;
+  --bg: #ece7dd;
+  --bg-image: radial-gradient(ellipse at 30% -10%, #f6f2ea, transparent 60%), linear-gradient(180deg, #efeae1, #e4ddd0);
+  --surface: #f7f4ee;
+  --surface-solid: #f7f4ee;
+  --surface-2: #efebe3;
+  --surface-border: #ddd6c9;
+  --surface-edge: #cfc7b8;
+  --surface-highlight: none;
+  --blur: 0px;
+  --header-bg: #f7f4ee;
+  --btn-bg: #f7f4ee;
+  --btn-bg-hover: #efe9de;
+  --btn-border: #cfc7b8;
+  --btn-text: #22201c;
+  --btn-primary-bg: #a3591a;
+  --btn-primary-hover: #a05817;
+  --btn-primary-border: #8a4b14;
+  --btn-green-bg: #5d7d3a;
+  --btn-green-border: #4a6630;
+  --btn-gloss: none;
+  --btn-shadow: none;
+  --btn-press-shadow: inset 0 1px 3px rgb(0 0 0 / 0.15);
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 12px; --radius-pill: 8px;
+  --shadow-1: 0 1px 2px rgb(60 50 30 / 0.08);
+  --shadow-pop: 0 10px 30px rgb(60 50 30 / 0.2);
+  --focus: 0 0 0 3px rgb(181 101 29 / 0.5);
+  --dialog-backdrop: rgb(30 25 15 / 0.4);
+  --texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");
+  /* Board and pieces */
+  --sq-light: #e9d9b8; --sq-dark: #a87b54; --sq-hl: rgb(214 120 40 / 0.5); --sq-coord-light: #8a6040; --sq-coord-dark: #f6ead2; --board-frame: linear-gradient(160deg, #6b4f37, #4a3524); --board-frame-edge: #2e2117; --pc-w-fill: #faf6ee; --pc-w-stroke: #2b2620; --pc-w-detail: #8a7d6b; --pc-b-fill: #2f2a24; --pc-b-stroke: #0f0d0a; --pc-b-detail: #b8a888; --pc-stroke-w: 1.3; --pc-filter: drop-shadow(0 1.5px 1px rgb(40 25 10 / 0.35)); --pc-gloss: 0; --eval-winning: #2f6b1f; --eval-slight-advantage: #4f6a12; --eval-equal: #6b665c; --eval-slight-disadvantage: #9a4a00; --eval-losing: #b3261e; --warning: #b3261e; --opening-text: #6b4a12; --star: #8a6400; --eval-bar-dark: #2b2620; --eval-bar-light: #f6f2e9;
+  color-scheme: light;
+}
+
+/* ---------- Matte textured, dark ---------- */
+:root[data-skin='matte'][data-theme='dark'] {
+  --select-bg: #2c2a26; --select-text: #ece6da; --select-hover-bg: #3a3631; --select-hover-text: #ece6da;
+  --text: #ece6da; --text-muted: #b0a898; --text-on-accent: #1a1712; --link: #e8a35e;
+  --accent: #d98a3d; --accent-2: #e8a35e; --accent-green: #8fb35f; --accent-soft: rgb(217 138 61 / 0.16);
+  --good: #9cc46a; --bad: #ff8a7a;
+  --line: #3a3630;
+  --bg: #1b1a17;
+  --bg-image: radial-gradient(ellipse at 30% -10%, #2a2723, transparent 60%), linear-gradient(180deg, #1e1c19, #171613);
+  --surface: #24221f;
+  --surface-solid: #24221f;
+  --surface-2: #1c1b18;
+  --surface-border: #3a3630;
+  --surface-edge: #121110;
+  --header-bg: #22201d;
+  --btn-bg: #2c2a26;
+  --btn-bg-hover: #36332e;
+  --btn-border: #4a453d;
+  --btn-text: #ece6da;
+  --btn-primary-bg: #d98a3d;
+  --btn-primary-hover: #e39a52;
+  --btn-primary-border: #e8a35e;
+  --btn-green-bg: #8fb35f;
+  --btn-green-border: #a3c474;
+  --btn-press-shadow: inset 0 1px 3px rgb(0 0 0 / 0.5);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.55);
+  --focus: 0 0 0 3px rgb(232 163 94 / 0.6);
+  --dialog-backdrop: rgb(0 0 0 / 0.5);
+  --texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.09'/%3E%3C/svg%3E");
+  /* Board and pieces */
+  --sq-light: #cbb08a; --sq-dark: #7d5c40; --sq-hl: rgb(232 163 94 / 0.55); --sq-coord-light: #6a4a30; --sq-coord-dark: #efe0c4; --board-frame: linear-gradient(160deg, #2d2620, #15120f); --board-frame-edge: #000000; --pc-w-fill: #f3ece0; --pc-w-stroke: #1c1915; --pc-w-detail: #8a7d6b; --pc-b-fill: #26221d; --pc-b-stroke: #050404; --pc-b-detail: #9c8c70; --pc-stroke-w: 1.3; --pc-filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.55)); --pc-gloss: 0; --eval-winning: #9cc46a; --eval-slight-advantage: #c3d97a; --eval-equal: #b0a898; --eval-slight-disadvantage: #f0a860; --eval-losing: #ff8a7a; --warning: #ff8a7a; --opening-text: #e8c27a; --star: #e8c27a; --eval-bar-dark: #121110; --eval-bar-light: #ece6da;
+  color-scheme: dark;
+}
+
+/* ---------- Frutiger Aero, light ---------- */
+:root[data-skin='aero'] {
+  --select-bg: #ffffff; --select-text: #0d2a3f; --select-hover-bg: #dcefff; --select-hover-text: #0d2a3f;
+  /* Corners: soft radius on the top corners only, tighter at the bottom, with a gloss band. */
+  --corner-panel: 20px 20px 6px 6px; --corner-card: 16px 16px 5px 5px; --corner-control: 12px 12px 5px 5px; --corner-chip: 999px;
+  --title-shadow: 0 1px 0 rgb(255 255 255 / 0.55), 0 2px 6px rgb(0 60 120 / 0.18); --title-spacing: 0.02em;
+  --corner-control-start: 12px 0 0 5px; --corner-control-end: 0 12px 5px 0;
+  --edge-detail: 0 0 0 0 transparent;
+  --corner-art: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 26px);
+  --panel-clip: none;
+  --border-w: 1px;
+  --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --text: #0d2a3f; --text-muted: #45657c; --text-on-accent: #ffffff; --link: #0a5fa8;
+  --accent: #1584d8; --accent-2: #0b63ad; --accent-green: #2ea84a; --accent-soft: rgb(21 132 216 / 0.13);
+  --good: #1d8a3a; --bad: #c6282e;
+  --line: rgb(13 70 120 / 0.16);
+  --bg: #cfeaf9;
+  --bg-image:
+    radial-gradient(circle at 12% 18%, rgb(255 255 255 / 0.85) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 12%, rgb(255 255 255 / 0.55) 0 26px, transparent 27px),
+    radial-gradient(circle at 90% 70%, rgb(255 255 255 / 0.35) 0 60px, transparent 62px),
+    radial-gradient(circle at 6% 82%, rgb(255 255 255 / 0.4) 0 40px, transparent 42px),
+    radial-gradient(circle at 70% 40%, rgb(255 255 255 / 0.3) 0 12px, transparent 13px),
+    radial-gradient(ellipse 120% 60% at 50% 115%, rgb(120 210 110 / 0.55), transparent 60%),
+    linear-gradient(180deg, #8fd0f7 0%, #c9ebfb 45%, #eaf8fd 75%, #d5f0d6 100%);
+  --surface: linear-gradient(180deg, rgb(255 255 255 / 0.86) 0%, rgb(240 249 255 / 0.72) 100%);
+  --surface-solid: #f3fbff;
+  --surface-2: linear-gradient(180deg, rgb(225 241 252 / 0.9), rgb(255 255 255 / 0.95));
+  --surface-border: rgb(255 255 255 / 0.9);
+  --surface-edge: rgb(30 110 170 / 0.22);
+  --surface-highlight: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(30 110 170 / 0.08);
+  --blur: 14px;
+  --header-bg: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(225 244 255 / 0.62));
+  --btn-bg: linear-gradient(180deg, #ffffff 0%, #eef7fd 48%, #dbeefa 52%, #e9f6ff 100%);
+  --btn-bg-hover: linear-gradient(180deg, #ffffff 0%, #e4f4ff 48%, #cbe8fb 52%, #def2ff 100%);
+  --btn-border: rgb(30 110 170 / 0.32);
+  --btn-text: #0d2a3f;
+  --btn-primary-bg: linear-gradient(180deg, #3aa6e8 0%, #0f76c6 48%, #0a5fa6 52%, #1580d2 100%);
+  --btn-primary-hover: linear-gradient(180deg, #4fb3ee 0%, #1582d2 48%, #0c69b6 52%, #1c8bdc 100%);
+  --btn-primary-border: #0a5c9e;
+  --btn-green-bg: linear-gradient(180deg, #6cc96b 0%, #2a8f39 48%, #1f7a2c 52%, #2f9a3e 100%);
+  --btn-green-border: #217a2e;
+  --btn-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.1));
+  --btn-shadow: 0 1px 2px rgb(10 60 100 / 0.18), 0 2px 6px rgb(10 60 100 / 0.1);
+  --btn-press-shadow: inset 0 2px 4px rgb(10 60 100 / 0.25);
+  --radius-sm: 8px; --radius: 16px; --radius-lg: 22px; --radius-pill: 999px;
+  --shadow-1: 0 1px 1px rgb(10 60 100 / 0.08), 0 4px 14px rgb(10 60 100 / 0.12), 0 14px 32px rgb(10 60 100 / 0.08);
+  --shadow-pop: 0 2px 4px rgb(10 60 100 / 0.12), 0 18px 48px rgb(10 60 100 / 0.28);
+  --focus: 0 0 0 3px rgb(255 255 255 / 0.9), 0 0 0 6px rgb(21 132 216 / 0.7);
+  --dialog-backdrop: rgb(10 50 80 / 0.35);
+  --texture: none;
+  /* Board and pieces */
+  --sq-light: #eef8ff; --sq-dark: #3a86bd; --sq-hl: rgb(255 214 60 / 0.6); --sq-coord-light: #2f78aa; --sq-coord-dark: #f2faff; --board-frame: linear-gradient(180deg, #7cc4ef, #2f86c4); --board-frame-edge: rgb(255 255 255 / 0.9); --pc-w-fill: #ffffff; --pc-w-stroke: #0d3a5c; --pc-w-detail: #6f9bbd; --pc-b-fill: #13466f; --pc-b-stroke: #04192b; --pc-b-detail: #7fb6dd; --pc-stroke-w: 1.2; --pc-filter: drop-shadow(0 2px 2px rgb(10 60 100 / 0.35)); --pc-gloss: 0.6; --eval-winning: #1d7a34; --eval-slight-advantage: #3b7212; --eval-equal: #45657c; --eval-slight-disadvantage: #a64b00; --eval-losing: #c6282e; --warning: #c6282e; --opening-text: #0a5fa8; --star: #7d6200; --eval-bar-dark: #0d2a3f; --eval-bar-light: #ffffff;
+  color-scheme: light;
+}
+
+/* ---------- Frutiger Aero, dark: night-sky glass, same gloss ----------
+ * useTheme always sets data-theme (from the saved choice or the OS setting). */
+:root[data-skin='aero'][data-theme='dark'] {
+  --select-bg: #164a6e; --select-text: #e6f5ff; --select-hover-bg: #215f8a; --select-hover-text: #ffffff;
+  --corner-art: linear-gradient(180deg, rgb(190 235 255 / 0.16), rgb(190 235 255 / 0) 26px);
+  --text: #e6f5ff; --text-muted: #9cc2db; --text-on-accent: #ffffff; --link: #7fd0ff;
+  --accent: #3fb5f5; --accent-2: #1a8fd6; --accent-green: #5fd77a; --accent-soft: rgb(63 181 245 / 0.18);
+  --good: #63de86; --bad: #ff7b7b;
+  --line: rgb(140 210 255 / 0.18);
+  --bg: #06223a;
+  --bg-image:
+    radial-gradient(circle at 12% 18%, rgb(170 225 255 / 0.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 12%, rgb(120 200 255 / 0.14) 0 26px, transparent 27px),
+    radial-gradient(circle at 90% 70%, rgb(120 200 255 / 0.1) 0 60px, transparent 62px),
+    radial-gradient(circle at 6% 82%, rgb(120 230 150 / 0.1) 0 40px, transparent 42px),
+    radial-gradient(ellipse 120% 60% at 50% 115%, rgb(40 160 90 / 0.35), transparent 60%),
+    linear-gradient(180deg, #031326 0%, #072a48 50%, #0a3a5a 80%, #0b3a3a 100%);
+  --surface: linear-gradient(180deg, rgb(40 90 130 / 0.62) 0%, rgb(14 46 74 / 0.6) 100%);
+  --surface-solid: #0d3050;
+  --surface-2: linear-gradient(180deg, rgb(4 22 38 / 0.7), rgb(14 46 74 / 0.6));
+  --surface-border: rgb(150 215 255 / 0.22);
+  --surface-edge: rgb(0 0 0 / 0.35);
+  --surface-highlight: inset 0 1px 0 rgb(190 235 255 / 0.28), inset 0 -1px 0 rgb(0 0 0 / 0.2);
+  --header-bg: linear-gradient(180deg, rgb(30 80 120 / 0.75), rgb(10 40 66 / 0.6));
+  --btn-bg: linear-gradient(180deg, #3d7eaa 0%, #22597f 48%, #164a6e 52%, #1f5b82 100%);
+  --btn-bg-hover: linear-gradient(180deg, #4a90bf 0%, #2a6994 48%, #1b5780 52%, #276a95 100%);
+  --btn-border: rgb(150 215 255 / 0.35);
+  --btn-text: #e6f5ff;
+  --btn-primary-bg: linear-gradient(180deg, #4cb8f0 0%, #1680cc 48%, #0d66aa 52%, #1a86d0 100%);
+  --btn-primary-hover: linear-gradient(180deg, #5cc2f4 0%, #1d8bd6 48%, #1170b6 52%, #2290da 100%);
+  --btn-primary-border: #7fd0ff;
+  --btn-green-bg: linear-gradient(180deg, #6cc96b 0%, #2a8f39 48%, #1f7a2c 52%, #2f9a3e 100%);
+  --btn-green-border: #8de6a0;
+  --btn-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.04));
+  --btn-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.25);
+  --btn-press-shadow: inset 0 2px 5px rgb(0 0 0 / 0.45);
+  --shadow-1: 0 1px 1px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.3), 0 16px 36px rgb(0 10 30 / 0.3);
+  --shadow-pop: 0 2px 4px rgb(0 0 0 / 0.3), 0 20px 50px rgb(0 0 0 / 0.55);
+  --focus: 0 0 0 3px rgb(6 34 58 / 0.9), 0 0 0 6px rgb(63 181 245 / 0.8);
+  --dialog-backdrop: rgb(0 10 20 / 0.55);
+  /* Board and pieces */
+  --sq-light: #9ccff0; --sq-dark: #2f73a3; --sq-hl: rgb(255 214 60 / 0.55); --sq-coord-light: #1f5f8c; --sq-coord-dark: #e6f5ff; --board-frame: linear-gradient(180deg, #245b85, #0a2c48); --board-frame-edge: rgb(150 215 255 / 0.35); --pc-w-fill: #f4fbff; --pc-w-stroke: #08304e; --pc-w-detail: #6f9bbd; --pc-b-fill: #103e63; --pc-b-stroke: #021220; --pc-b-detail: #6fa6cc; --pc-stroke-w: 1.2; --pc-filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.5)); --pc-gloss: 0.5; --eval-winning: #63de86; --eval-slight-advantage: #b5e86a; --eval-equal: #9cc2db; --eval-slight-disadvantage: #ffb36b; --eval-losing: #ff7b7b; --warning: #ff7b7b; --opening-text: #7fd0ff; --star: #ffd76a; --eval-bar-dark: #031326; --eval-bar-light: #e6f5ff;
+  color-scheme: dark;
+}
+
+/* ---------- Neon futuristic, dark: deep surfaces, glowing edges, faint grid ---------- */
+:root[data-skin='neon'] {
+  --select-bg: #13102a; --select-text: #e9e6ff; --select-hover-bg: #231d4a; --select-hover-text: #ffffff;
+  /* Corners: chamfered top-left and bottom-right, with a glowing line along each cut and an inner glow. */
+  --corner-panel: 0; --corner-card: 0; --corner-control: 2px; --corner-chip: 2px;
+  --title-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 2px var(--accent); --title-spacing: 0.06em;
+  --corner-control-start: 2px 0 0 2px; --corner-control-end: 0 2px 2px 0;
+  --edge-detail: inset 0 0 14px rgb(56 225 255 / 0.14);
+  --corner-art: linear-gradient(135deg, transparent 0 9.2px, var(--accent) 9.2px 10.8px, transparent 11.2px) top left / 24px 24px no-repeat,
+    linear-gradient(315deg, transparent 0 9.2px, var(--accent) 9.2px 10.8px, transparent 11.2px) bottom right / 24px 24px no-repeat;
+  --panel-clip: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  --border-w: 1px;
+  --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --text: #e9e6ff; --text-muted: #9d97c7; --text-on-accent: #07060d; --link: #7fe9ff;
+  --accent: #38e1ff; --accent-2: #a46bff; --accent-green: #4dff9a; --accent-soft: rgb(56 225 255 / 0.14);
+  --good: #4dff9a; --bad: #ff5c8a;
+  --line: rgb(140 120 255 / 0.22);
+  --bg: #07060d;
+  --bg-image: radial-gradient(ellipse at 50% -10%, #1d1640, transparent 60%),
+    repeating-linear-gradient(0deg, rgb(56 225 255 / 0.05) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgb(56 225 255 / 0.05) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #07060d, #0c0a18);
+  --surface: linear-gradient(180deg, rgb(26 22 52 / 0.85), rgb(14 12 30 / 0.85));
+  --surface-solid: #12102a;
+  --surface-2: rgb(8 7 18 / 0.8);
+  --surface-border: rgb(56 225 255 / 0.38);
+  --surface-edge: rgb(0 0 0 / 0.5);
+  --surface-highlight: inset 0 1px 0 rgb(164 107 255 / 0.25), inset 0 -1px 0 rgb(0 0 0 / 0.3);
+  --blur: 10px;
+  --header-bg: rgb(10 9 22 / 0.8);
+  --btn-bg: linear-gradient(180deg, #1c1838, #13102a);
+  --btn-bg-hover: linear-gradient(180deg, #262050, #181437);
+  --btn-border: rgb(56 225 255 / 0.35);
+  --btn-text: #e9e6ff;
+  --btn-primary-bg: linear-gradient(180deg, #5ef0ff, #22b8e0);
+  --btn-primary-hover: linear-gradient(180deg, #8af5ff, #38c8ef);
+  --btn-primary-border: #38e1ff;
+  --btn-green-bg: linear-gradient(180deg, #7dffb8, #2fd57d);
+  --btn-green-border: #4dff9a;
+  --btn-gloss: linear-gradient(180deg, rgb(255 255 255 / 0.12), transparent);
+  --btn-shadow: 0 0 10px rgb(56 225 255 / 0.15);
+  --btn-press-shadow: inset 0 0 10px rgb(56 225 255 / 0.35);
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 14px; --radius-pill: 999px;
+  --shadow-1: 0 0 12px rgb(56 225 255 / 0.18), 0 0 1px rgb(164 107 255 / 0.6), 0 10px 30px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 0 30px rgb(164 107 255 / 0.25), 0 20px 50px rgb(0 0 0 / 0.6);
+  --focus: 0 0 0 2px #07060d, 0 0 0 4px #38e1ff;
+  --dialog-backdrop: rgb(0 0 0 / 0.6);
+  --texture: none;
+  /* Board and pieces */
+  --sq-light: #2b2657; --sq-dark: #15122f; --sq-hl: rgb(56 225 255 / 0.38); --sq-coord-light: #7fe9ff; --sq-coord-dark: #a46bff; --board-frame: linear-gradient(180deg, #13102a, #07060d); --board-frame-edge: #38e1ff; --pc-w-fill: #eafcff; --pc-w-stroke: #38e1ff; --pc-w-detail: #38e1ff; --pc-b-fill: #0d0b1e; --pc-b-stroke: #a46bff; --pc-b-detail: #a46bff; --pc-stroke-w: 1.3; --pc-filter: drop-shadow(0 0 3px rgb(56 225 255 / 0.55)); --pc-gloss: 0; --eval-winning: #4dff9a; --eval-slight-advantage: #b6ff6b; --eval-equal: #9d97c7; --eval-slight-disadvantage: #ffb86b; --eval-losing: #ff5c8a; --warning: #ff5c8a; --opening-text: #7fe9ff; --star: #ffe066; --eval-bar-dark: #07060d; --eval-bar-light: #e9e6ff;
+  color-scheme: dark;
+}
+
+
+/* ---------- Neon, light: bright clean surfaces, glowing cyan/violet edges, faint grid ---------- */
+:root[data-skin='neon'][data-theme='light'] {
+  --select-bg: #ffffff; --select-text: #14112b; --select-hover-bg: #e3f8ff; --select-hover-text: #14112b;
+  --text: #14112b; --text-muted: #4a4670; --text-on-accent: #ffffff; --link: #6a2fd6;
+  --accent: #0a8fb0; --accent-2: #7a3ff0; --accent-green: #0f8a52; --accent-soft: rgb(10 143 176 / 0.12);
+  --good: #0f7a48; --bad: #c4124a;
+  --line: rgb(122 63 240 / 0.22);
+  --bg: #f4f6ff;
+  --bg-image: radial-gradient(ellipse at 50% -10%, #e6e0ff, transparent 60%),
+    repeating-linear-gradient(0deg, rgb(10 143 176 / 0.07) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgb(10 143 176 / 0.07) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, #f8f9ff, #eef0fb);
+  --surface: rgb(255 255 255 / 0.9);
+  --surface-solid: #ffffff;
+  --surface-2: #f2f3fc;
+  --surface-border: rgb(10 170 210 / 0.55);
+  --surface-edge: rgb(122 63 240 / 0.15);
+  --surface-highlight: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --header-bg: rgb(255 255 255 / 0.88);
+  --btn-bg: #ffffff;
+  --btn-bg-hover: #eefbff;
+  --btn-border: rgb(10 170 210 / 0.6);
+  --btn-text: #14112b;
+  --btn-primary-bg: linear-gradient(180deg, #0886a6, #077a98);
+  --btn-primary-hover: linear-gradient(180deg, #0a90b2, #0880a0);
+  --btn-primary-border: #38e1ff;
+  --btn-green-bg: linear-gradient(180deg, #0f8650, #0c7a48);
+  --btn-green-border: #4dff9a;
+  --btn-shadow: 0 0 10px rgb(56 225 255 / 0.35);
+  --btn-press-shadow: inset 0 0 8px rgb(122 63 240 / 0.3);
+  --shadow-1: 0 0 14px rgb(56 225 255 / 0.28), 0 0 1px rgb(164 107 255 / 0.8), 0 8px 24px rgb(40 30 90 / 0.08);
+  --shadow-pop: 0 0 30px rgb(164 107 255 / 0.3), 0 20px 50px rgb(40 30 90 / 0.18);
+  --focus: 0 0 0 2px #ffffff, 0 0 0 4px #7a3ff0;
+  --dialog-backdrop: rgb(20 17 43 / 0.3);
+  /* Board and pieces */
+  --sq-light: #f4f2ff; --sq-dark: #8a74e8; --sq-hl: rgb(10 143 176 / 0.35); --sq-coord-light: #6a4fd6; --sq-coord-dark: #ffffff; --board-frame: linear-gradient(180deg, #ffffff, #e8ebfb); --board-frame-edge: #38e1ff; --pc-w-fill: #ffffff; --pc-w-stroke: #0a8fb0; --pc-w-detail: #0a8fb0; --pc-b-fill: #1b1640; --pc-b-stroke: #7a3ff0; --pc-b-detail: #b89cff; --pc-stroke-w: 1.3; --pc-filter: drop-shadow(0 0 2.5px rgb(122 63 240 / 0.4)); --pc-gloss: 0; --eval-winning: #0f7a48; --eval-slight-advantage: #3f6f00; --eval-equal: #4a4670; --eval-slight-disadvantage: #a34a00; --eval-losing: #c4124a; --warning: #c4124a; --opening-text: #6a2fd6; --star: #7a5c00; --eval-bar-dark: #14112b; --eval-bar-light: #ffffff;
+  color-scheme: light;
+}
+
+/* ---------- Neubrutalism, light: flat colour, thick black outlines, hard offset shadows ---------- */
+:root[data-skin='brutal'] {
+  --select-bg: #ffffff; --select-text: #000000; --select-hover-bg: #fff1b8; --select-hover-text: #000000;
+  /* Corners: nearly square, heavy outline and offset shadow do the work. */
+  --corner-panel: 2px; --corner-card: 2px; --corner-control: 2px; --corner-chip: 0;
+  --title-shadow: 2px 2px 0 var(--accent); --title-spacing: 0.01em;
+  --corner-control-start: 2px 0 0 2px; --corner-control-end: 0 2px 2px 0;
+  --edge-detail: 0 0 0 0 transparent;
+  --corner-art: none;
+  --panel-clip: none;
+  --border-w: 3px;
+  --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --text: #000000; --text-muted: #3d3d3d; --text-on-accent: #000000; --link: #1b3fd6;
+  --accent: #ff5ca8; --accent-2: #1b3fd6; --accent-green: #3ddc84; --accent-soft: rgb(255 92 168 / 0.2);
+  --good: #0b7a35; --bad: #c4001a;
+  --line: #000000;
+  --bg: #fff4d6;
+  --bg-image: linear-gradient(#fff4d6, #fff4d6);
+  --surface: #ffffff;
+  --surface-solid: #ffffff;
+  --surface-2: #fff9e8;
+  --surface-border: #000000;
+  --surface-edge: transparent;
+  --surface-highlight: 0 0 0 0 transparent;
+  --blur: 0px;
+  --header-bg: #ffd23f;
+  --btn-bg: #ffffff;
+  --btn-bg-hover: #fff1b8;
+  --btn-border: #000000;
+  --btn-text: #000000;
+  --btn-primary-bg: #ff5ca8;
+  --btn-primary-hover: #ff7ab9;
+  --btn-primary-border: #000000;
+  --btn-green-bg: #3ddc84;
+  --btn-green-border: #000000;
+  --btn-gloss: none;
+  --btn-shadow: 3px 3px 0 #000000;
+  --btn-press-shadow: 0 0 0 #000000;
+  --radius-sm: 4px; --radius: 6px; --radius-lg: 8px; --radius-pill: 8px;
+  --shadow-1: 5px 5px 0 #000000;
+  --shadow-pop: 8px 8px 0 #000000;
+  --focus: 0 0 0 3px #ffffff, 0 0 0 6px #1b3fd6;
+  --dialog-backdrop: rgb(0 0 0 / 0.45);
+  --texture: none;
+  /* Board and pieces */
+  --sq-light: #fffbea; --sq-dark: #7fd1ff; --sq-hl: rgb(255 92 168 / 0.6); --sq-coord-light: #000000; --sq-coord-dark: #000000; --board-frame: #000000; --board-frame-edge: #000000; --pc-w-fill: #ffffff; --pc-w-stroke: #000000; --pc-w-detail: #000000; --pc-b-fill: #000000; --pc-b-stroke: #000000; --pc-b-detail: #ffffff; --pc-stroke-w: 2.2; --pc-filter: none; --pc-gloss: 0; --eval-winning: #0b7a35; --eval-slight-advantage: #3d6b00; --eval-equal: #3d3d3d; --eval-slight-disadvantage: #a34400; --eval-losing: #c4001a; --warning: #c4001a; --opening-text: #1b3fd6; --star: #7a5000; --eval-bar-dark: #000000; --eval-bar-light: #ffffff;
+  color-scheme: light;
+}
+
+/* ---------- Neubrutalism, dark: dark surfaces, thick light outlines, hard shadows in cube colours ---------- */
+:root[data-skin='brutal'][data-theme='dark'] {
+  --select-bg: #2b2b2b; --select-text: #fafafa; --select-hover-bg: #3d3d3d; --select-hover-text: #ffffff;
+  --text: #fafafa; --text-muted: #c8c8c8; --text-on-accent: #000000; --link: #ffd23f;
+  --accent: #ff5ca8; --accent-2: #4dd2ff; --accent-green: #3ddc84; --accent-soft: rgb(255 92 168 / 0.2);
+  --good: #3ddc84; --bad: #ff6b6b;
+  --line: #fafafa;
+  --bg: #161616;
+  --bg-image: linear-gradient(#161616, #161616);
+  --surface: #222222;
+  --surface-solid: #222222;
+  --surface-2: #1a1a1a;
+  --surface-border: #fafafa;
+  --header-bg: #2b2b2b;
+  --btn-bg: #2b2b2b;
+  --btn-bg-hover: #3a3a3a;
+  --btn-border: #fafafa;
+  --btn-text: #fafafa;
+  --btn-primary-bg: #ff5ca8;
+  --btn-primary-hover: #ff7ab9;
+  --btn-primary-border: #fafafa;
+  --btn-green-bg: #3ddc84;
+  --btn-green-border: #fafafa;
+  --btn-shadow: 3px 3px 0 #ffd23f;
+  --btn-press-shadow: 0 0 0 #ffd23f;
+  --shadow-1: 5px 5px 0 #ff5ca8;
+  --shadow-pop: 8px 8px 0 #4dd2ff;
+  --focus: 0 0 0 3px #161616, 0 0 0 6px #ffd23f;
+  --dialog-backdrop: rgb(0 0 0 / 0.6);
+  /* Board and pieces */
+  --sq-light: #e9e9e9; --sq-dark: #ff5ca8; --sq-hl: rgb(255 210 63 / 0.7); --sq-coord-light: #000000; --sq-coord-dark: #000000; --board-frame: #fafafa; --board-frame-edge: #fafafa; --pc-w-fill: #ffffff; --pc-w-stroke: #000000; --pc-w-detail: #000000; --pc-b-fill: #161616; --pc-b-stroke: #000000; --pc-b-detail: #ffd23f; --pc-stroke-w: 2.2; --pc-filter: none; --pc-gloss: 0; --eval-winning: #3ddc84; --eval-slight-advantage: #b6e35a; --eval-equal: #c8c8c8; --eval-slight-disadvantage: #ffb04d; --eval-losing: #ff6b6b; --warning: #ff6b6b; --opening-text: #ffd23f; --star: #ffd23f; --eval-bar-dark: #000000; --eval-bar-light: #fafafa;
+  color-scheme: dark;
+}
+
+/* Reduced transparency: solid surfaces, no blur. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --blur: 0px !important; --surface: var(--surface-solid) !important; --header-bg: var(--surface-solid) !important; }
+}
