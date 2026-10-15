@@ -1,22 +1,12 @@
+import { PieceSvg } from './pieces';
+import type { PieceKind } from './pieceArt';
+
 interface PieceSelectorProps {
   onSelectPiece: (piece: string | null) => void;
   selectedPiece: string | null;
 }
 
-const UNICODE_PIECES: Record<string, string> = {
-  K: '\u2654',
-  Q: '\u2655',
-  R: '\u2656',
-  B: '\u2657',
-  N: '\u2658',
-  P: '\u2659',
-  k: '\u265A',
-  q: '\u265B',
-  r: '\u265C',
-  b: '\u265D',
-  n: '\u265E',
-  p: '\u265F',
-};
+const NAMES: Record<string, string> = { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight', P: 'pawn' };
 
 const WHITE_PIECES = ['K', 'Q', 'R', 'B', 'N', 'P'];
 const BLACK_PIECES = ['k', 'q', 'r', 'b', 'n', 'p'];
@@ -27,33 +17,33 @@ export default function PieceSelector({
 }: PieceSelectorProps) {
   return (
     <div className="piece-selector">
-      <div className="piece-row-label">White</div>
-      <div className="piece-row">
+      <div className="piece-row" role="group" aria-label="Place a piece">
         {WHITE_PIECES.map((p) => (
           <button
             key={p}
             className={`piece-btn piece-btn-white${selectedPiece === p ? ' piece-btn-active' : ''}`}
             onClick={() => onSelectPiece(selectedPiece === p ? null : p)}
-            title={p}
+            title={`White ${NAMES[p]}`}
+            aria-label={`White ${NAMES[p]}`}
+            aria-pressed={selectedPiece === p}
           >
-            {UNICODE_PIECES[p]}
+            <PieceSvg kind={p as PieceKind} side="w" />
           </button>
         ))}
-      </div>
-      <div className="piece-row-label">Black</div>
-      <div className="piece-row">
+        <span className="piece-sep" aria-hidden="true" />
         {BLACK_PIECES.map((p) => (
           <button
             key={p}
             className={`piece-btn piece-btn-black${selectedPiece === p ? ' piece-btn-active' : ''}`}
             onClick={() => onSelectPiece(selectedPiece === p ? null : p)}
-            title={p}
+            title={`Black ${NAMES[p.toUpperCase()]}`}
+            aria-label={`Black ${NAMES[p.toUpperCase()]}`}
+            aria-pressed={selectedPiece === p}
           >
-            {UNICODE_PIECES[p]}
+            <PieceSvg kind={p.toUpperCase() as PieceKind} side="b" />
           </button>
         ))}
-      </div>
-      <button
+        <button
         className={`piece-btn piece-btn-remove${selectedPiece === 'REMOVE' ? ' piece-btn-active' : ''}`}
         onClick={() =>
           onSelectPiece(selectedPiece === 'REMOVE' ? null : 'REMOVE')
@@ -61,6 +51,7 @@ export default function PieceSelector({
       >
         Remove
       </button>
+      </div>
     </div>
   );
 }

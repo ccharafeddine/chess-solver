@@ -20,10 +20,7 @@ export default function BoardControls({
       <button className="control-btn turn-btn" onClick={onToggleTurn}>
         <span
           className="turn-indicator"
-          style={{
-            backgroundColor: turn === 'w' ? 'var(--piece-white)' : 'var(--piece-black)',
-            border: '1px solid var(--text-dim)',
-          }}
+          style={{ backgroundColor: turn === 'w' ? 'var(--pc-w-fill)' : 'var(--pc-b-fill)' }}
         />
         {turn === 'w' ? "White's" : "Black's"} turn
       </button>
