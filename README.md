@@ -24,21 +24,26 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot-analysis.png" width="850" alt="Chess Solver analyzing the starting position with five candidate lines" />
+  <img src="docs/screenshot-analysis.png" width="850" alt="Chess Solver in the Matte theme, finding Scholar's mate with three candidate lines" />
 </p>
 
 <table align="center">
   <tr>
     <td width="50%">
-      <img src="docs/screenshot-tactics.png" alt="Tactical motif detection flagging a back-rank checkmate" />
-      <p align="center"><sub>Tactical motifs flagged on every line — here a back-rank mate in 1</sub></p>
+      <img src="docs/screenshot-tactics.png" alt="The Neon theme in dark mode, flagging capture, checkmate and fork on the best line" />
+      <p align="center"><sub>Tactical motifs flagged on every line, here in Neon dark</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/screenshot-settings.png" alt="Settings menu with version and update check" />
-      <p align="center"><sub>Built-in update check against GitHub releases</sub></p>
+      <img src="docs/screenshot-settings.png" alt="Settings dialog with themes, light and dark mode, think time, updates and the version" />
+      <p align="center"><sub>Settings: theme, mode, think time, updates and About</sub></p>
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <img src="docs/screenshot-themes.png" width="850" alt="All eight looks: Matte, Frutiger Aero, Neon and Neubrutalism, each in light and dark" />
+  <br /><sub>Four themes, each in light and dark: Matte, Frutiger Aero, Neon and Neubrutalism</sub>
+</p>
 
 ## Features
 
@@ -52,7 +57,9 @@
 - Tactical motif detection (forks, pins, skewers, checks, etc.)
 - Opening name recognition
 - Checkmate, stalemate, and draw detection
-- Light/dark theme toggle
+- Four themes (Matte, the default; Frutiger Aero; Neon; Neubrutalism), each with light and dark. **System** (the default mode) follows your computer's setting live
+- An original piece set and a themed board: squares, frame, coordinates, highlights and pieces restyle with each theme
+- A wide layout that fills the window: the board grows with it, panels keep fixed heights and scroll inside, and nothing shifts as you play
 - Board flip and turn switching
 - Update check against GitHub releases: automatic at startup (a banner appears when a new version is out) and on demand from Settings → Check for updates
 
@@ -129,30 +136,48 @@ installer upgrades in place.
 To pin to the taskbar, right-click the desktop shortcut -> **Pin to taskbar** (Windows
 blocks programmatic taskbar pinning).
 
-## App Icon
+## Look and feel
 
-The app icon is a chess-knight glyph on a purple `#863bff` rounded square. Windows embeds `build/icon.ico`; macOS converts `build/icon.png` (1024×1024) to `.icns` at package time. To regenerate both after editing the design, run:
+### Themes
 
-```powershell
-powershell -ExecutionPolicy Bypass -File build/make-icon.ps1      # icon.ico (256..16)
-powershell -ExecutionPolicy Bypass -File build/make-icon-png.ps1  # icon.png (1024)
-```
+Open **Settings** (the gear, top right) to pick a theme and a mode:
 
-Both scripts use GDI+ with no external dependencies. Rerun `npm run dist` afterwards to embed the result.
+| Theme | Feel |
+| --- | --- |
+| **Matte** (default) | Warm paper grain, a walnut board frame, small crafted corners with a hairline double edge |
+| **Frutiger Aero** | Glossy glass panels over a sky backdrop, glossy pieces, soft top corners |
+| **Neon** | Deep night surfaces, glowing cyan and violet edges, chamfered corners |
+| **Neubrutalism** | Flat colour, thick outlines, hard offset shadows, square corners |
+
+Each theme has light and dark. **Light**, **Dark** or **System**; System is the default and follows the OS as it changes. Your choice is saved. `?skin=neon` (or `matte`, `aero`, `brutal`) in the URL picks a theme for that visit.
+
+Every colour, radius, shadow and corner is a CSS variable in `src/theme/tokens.css`; components never hard-code colours. The board squares, coordinates, highlight, frame and piece colours are tokens too, so the board restyles with the theme. Tests (`src/theme/*.test.ts`) check that all eight variants define every token and keep body text, muted text, links, evaluations, warnings, opening names and dropdowns at WCAG AA contrast or better, and that board coordinates and pieces stand out from their squares.
+
+### Board and pieces
+
+The pieces are an original geometric set drawn for this app (`src/components/pieceArt.ts`), not a stock set. The same shapes are dressed per theme: ivory and ebony in Matte, glossy porcelain and navy in Aero, glowing outlines in Neon, and bold black outlines in Neubrutalism.
+
+### Layout
+
+The board sizes itself to the window. The analysis list and the move list have fixed heights and scroll inside, the controls stay in place, and the page always reserves room for its scrollbar, so switching 1/3/5 lines, a long game or a warning never moves anything.
+
+### Title, logo and icons
+
+The title is set in [Bungee](https://github.com/djrrb/Bungee) (SIL OFL), bundled in `src/assets/fonts` so it works offline and in the desktop app, and styled per theme. The logo, an isometric board with the app's knight and an orange solve arrow, is `src/assets/logo.svg`. It is also the favicon (`public/favicon.svg`), the app icons (`public/icon-192.png`, `public/icon-512.png`), the desktop icons (`build/icon.ico` for Windows, `build/icon.png` at 1024×1024 for macOS) and the social card (`public/og-image.png`). After editing the SVG, re-export the PNG and ICO sizes from it and rerun `npm run dist`.
 
 ## How to Use
 
 1. The board starts with the standard chess position. Stockfish begins analyzing automatically.
-2. Select a piece from the palette below the board, then click any square to place it.
+2. Select a piece from the row below the board, then click any square to place it.
 3. Use **Remove** to erase pieces from the board.
 4. Toggle **White/Black to move** to change the side to analyze.
 5. The analysis panel shows the top engine moves with evaluations, tactical motifs, and principal variations. Use the **1 / 3 / 5** selector to trade breadth for depth.
 6. Click any analysis line to play that move on the board.
 7. Hover over a line to highlight the move on the board.
 8. Use **Reset** to restore the starting position or **Clear** to empty the board.
-9. Paste a FEN into the field under the piece palette and press **Load**. **Copy** puts the current position on the clipboard. A FEN the board cannot represent shows an error and does not change the position.
+9. Paste a FEN into the **FEN** field in the Position and game panel and press **Load**. **Copy** puts the current position on the clipboard. A FEN the board cannot represent shows an error and does not change the position.
 10. **Import PGN** reads a `.pgn` file. **Paste PGN** does the same from text. The move list starts at the beginning of the game; use the arrows or click a move to step through it. **Export PGN** downloads the current game. Import keeps the main line.
-11. Open the **⚙ settings menu** (top left) to change the engine's think time, see the app version, or check for updates. A dot on the gear and a banner under the header mean a new release is available.
+11. Open **Settings** (the gear, top right) to pick a theme and light, dark or system mode, change the engine's think time, check for updates, or see the version under **About**. A dot on the gear and a banner under the header mean a new release is available.
 
 ## How it's built
 
@@ -160,7 +185,7 @@ Chess Solver is an Electron desktop app. The window loads the React UI from a sm
 
 The engine is the Stockfish 18 multi-threaded NNUE build from the `stockfish` npm package. It is not committed to the repo. In development, Vite serves `stockfish-18.js` and `stockfish-18.wasm` from `node_modules`. The production build copies them into `dist/` as `stockfish.js` and `stockfish.wasm`. The UI runs that script in a Web Worker (`src/engine/stockfish.ts`) and speaks UCI to it.
 
-The board is React, drawn with react-chessboard. Legal play goes through chess.js, which keeps castling rights, en passant, and the move counters. The piece editor is allowed to build positions a real game cannot reach, including ones chess.js refuses to load. Those edits go through the raw FEN helpers in `src/engine/fen.ts`.
+The board is React, drawn with react-chessboard using the app's own piece set and theme colours. Legal play goes through chess.js, which keeps castling rights, en passant, and the move counters. The piece editor is allowed to build positions a real game cannot reach, including ones chess.js refuses to load. Those edits go through the raw FEN helpers in `src/engine/fen.ts`.
 
 ### Lost stops, and restarting a stuck search
 
