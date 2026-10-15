@@ -63,6 +63,17 @@
 - Board flip and turn switching
 - Update check against GitHub releases: automatic at startup (a banner appears when a new version is out) and on demand from Settings → Check for updates
 
+## Checkers
+
+A **Checkers** tab (top of the window) analyses American checkers / English draughts: captures are required, a jumping piece keeps jumping, and a man that reaches the far row is crowned (its move ends there).
+
+- **Ranked best moves** with evaluations: `+1.00` is about one piece ahead for the side to move, and "Win in 5" is a proven forced win. Click a line to play it.
+- **Set up any position** with the piece row under the board, or paste position text in the PDN style (`B:W21,22,K30:B1,2,K9`).
+- **Play vs engine** as Black or White, with optional hints, and **Undo**.
+- **Tour** walks through the rules with live example positions.
+
+The engine is written for this app and runs in a Web Worker: alpha-beta search with iterative deepening, a transposition table, killer and history move ordering, and a capture extension. Move generation is checked against the published perft counts (depth 1 to 8 from the start: 7, 49, 302, 1469, 7361, 36768, 179740, 845931). There are no endgame tables yet; small king endings are solved by search instead.
+
 ## Quick Start (Development)
 
 ```bash
