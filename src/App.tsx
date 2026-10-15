@@ -39,7 +39,16 @@ import {
   serializePgn,
   type GameState,
 } from './engine/notation';
+import CheckersView from './checkers/CheckersView';
 import './App.css';
+
+type GameTab = 'chess' | 'checkers';
+const TAB_KEY = 'chess-solver-tab';
+function initialTab(): GameTab {
+  const fromUrl = new URLSearchParams(location.search).get('game');
+  const v = fromUrl ?? localStorage.getItem(TAB_KEY);
+  return v === 'checkers' ? 'checkers' : 'chess';
+}
 
 function tacticsFor(fen: string, move: string): TacticalMotif[] {
   try {
@@ -126,6 +135,11 @@ export default function App() {
   });
   // The web build is always current, so only the desktop app checks for updates.
   const updates = useUpdateCheck(!__WEB_BUILD__);
+
+  const [tab, setTab] = useState<GameTab>(initialTab);
+  useEffect(() => {
+    localStorage.setItem(TAB_KEY, tab);
+  }, [tab]);
 
   const engineRef = useRef<StockfishEngine | null>(null);
 
@@ -405,6 +419,19 @@ export default function App() {
           <img className="brand-mark" src={logoUrl} alt="" width="30" height="30" />
           Chess Solver
         </h1>
+        <div className="game-tabs" role="tablist" aria-label="Game">
+          {(['chess', 'checkers'] as const).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className={`game-tab${tab === t ? ' game-tab-active' : ''}`}
+              onClick={() => setTab(t)}
+            >
+              {t === 'chess' ? 'Chess' : 'Checkers'}
+            </button>
+          ))}
+        </div>
         <button
           className="icon-btn settings-gear"
           id="settings"
@@ -447,6 +474,15 @@ export default function App() {
       )}
 
       <main className="app-main" style={{ '--analysis-h': `${analysisHeight(boardWidth)}px` } as React.CSSProperties}>
+        {tab === 'checkers' ? (
+          <CheckersView
+            boardWidth={boardWidth}
+            thinkTimeSec={thinkTimeSec}
+            multiPV={multiPV}
+            onMultiPVChange={setMultiPV}
+          />
+        ) : (
+        <>
         <div className="board-section">
           <Board
             position={fen}
@@ -498,6 +534,8 @@ export default function App() {
             onExportPgn={handleExportPgn}
           />
         </div>
+        </>
+        )}
       </main>
     </div>
   );
