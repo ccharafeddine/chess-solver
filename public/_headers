@@ -1,0 +1,8 @@
+# Static hosting (Cloudflare Pages and Netlify read this file).
+# Cross-origin isolation gives the page SharedArrayBuffer, which the
+# multi-threaded engine needs. Without these headers the web build falls back
+# to the slower single-threaded engine.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
