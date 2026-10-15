@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { createReadStream, copyFileSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ENGINE_FILES, type EngineTarget } from './src/engine/engineFiles'
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
@@ -16,22 +17,18 @@ const crossOriginIsolationHeaders = {
 }
 
 // The engine ships straight from the `stockfish` npm package instead of being
-// committed to the repo: the large multi-threaded NNUE build (strongest
-// flavor; needs cross-origin isolation, which both the dev server and the
-// Electron shell provide). The worker loads `./stockfish.js`, which in turn
-// fetches `./stockfish.wasm` and spawns its pthreads from the same script.
+// committed to the repo. Which build depends on the target (desktop: the full
+// multi-threaded NNUE build; web: the lite builds), listed in
+// src/engine/engineFiles.ts. Threaded builds need cross-origin isolation,
+// which the dev server, the Electron shell and public/_headers provide.
 const ENGINE_DIR = fileURLToPath(new URL('./node_modules/stockfish/bin/', import.meta.url))
-const ENGINE_FILES: Record<string, { source: string; type: string }> = {
-  'stockfish.js': { source: 'stockfish-18.js', type: 'application/javascript' },
-  'stockfish.wasm': { source: 'stockfish-18.wasm', type: 'application/wasm' },
-}
-
-function stockfishEngine(): Plugin {
+function stockfishEngine(target: EngineTarget): Plugin {
+  const files = ENGINE_FILES[target]
   let outDir = 'dist'
   const serve: Plugin['configureServer'] = (server) => {
     server.middlewares.use((req, res, next) => {
       const name = (req.url ?? '').split(/[?#]/)[0].split('/').pop() ?? ''
-      const file = ENGINE_FILES[name]
+      const file = files[name]
       if (!file) return next()
       const path = join(ENGINE_DIR, file.source)
       res.setHeader('Content-Type', file.type)
@@ -48,7 +45,7 @@ function stockfishEngine(): Plugin {
     configureServer: serve,
     configurePreviewServer: serve as Plugin['configurePreviewServer'],
     writeBundle() {
-      for (const [name, file] of Object.entries(ENGINE_FILES)) {
+      for (const [name, file] of Object.entries(files)) {
         copyFileSync(join(ENGINE_DIR, file.source), join(outDir, name))
       }
       // The packaged app serves dist/. The stockfish npm package's own
@@ -64,12 +61,15 @@ function stockfishEngine(): Plugin {
   }
 }
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), stockfishEngine()],
+// `vite build --mode web` (npm run build:web) makes the static web build with
+// the lite engine; every other mode is the desktop build with the full engine.
+// See src/engine/engineFiles.ts.
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), stockfishEngine(mode === 'web' ? 'web' : 'desktop')],
   base: './',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __WEB_BUILD__: JSON.stringify(mode === 'web'),
   },
   server: { headers: crossOriginIsolationHeaders },
   preview: { headers: crossOriginIsolationHeaders },
@@ -77,4 +77,4 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
   },
-})
+}))

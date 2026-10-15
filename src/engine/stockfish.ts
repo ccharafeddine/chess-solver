@@ -1,3 +1,4 @@
+import { chooseEngine, hasSharedMemory, type EngineChoice } from './engineFiles';
 import type { Square } from 'chess.js';
 
 export interface AnalysisLine {
@@ -52,6 +53,14 @@ const GO_GRACE_MS = 4000;
 // failure is surfaced to the caller.
 const MAX_RETRIES = 1;
 
+/** The page cannot run the engine at all (threaded build without SharedArrayBuffer). */
+export class EngineUnavailableError extends Error {
+  constructor() {
+    super('This page cannot run the chess engine: it needs SharedArrayBuffer, which requires cross-origin isolation (COOP/COEP headers).');
+    this.name = 'EngineUnavailableError';
+  }
+}
+
 function pickThreadCount(): number {
   const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 0;
   if (!cores || cores < 2) return 1;
@@ -85,6 +94,9 @@ interface SearchRequest {
  */
 export class StockfishEngine {
   private worker: Worker | null = null;
+  // Picked once per engine: threaded when the page has SharedArrayBuffer,
+  // else the single-threaded web fallback (see engineFiles.ts).
+  private engine: EngineChoice | null = chooseEngine(__WEB_BUILD__ ? 'web' : 'desktop', hasSharedMemory());
   private ready = false;
   private destroyed = false;
   private threads = 1;
@@ -262,9 +274,14 @@ export class StockfishEngine {
 
   private createWorker(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
+      const engine = this.engine;
+      if (!engine) {
+        reject(new EngineUnavailableError());
+        return;
+      }
       let worker: Worker;
       try {
-        worker = new Worker('./stockfish.js');
+        worker = new Worker(engine.script);
       } catch (err) {
         reject(err);
         return;
@@ -283,7 +300,7 @@ export class StockfishEngine {
         e.preventDefault();
       };
 
-      const threads = pickThreadCount();
+      const threads = engine.single ? 1 : pickThreadCount();
       // uci -> uciok, then configure and wait for readyok. Spawning the
       // search threads and allocating the hash table happen here, so the
       // first `go` starts immediately instead of queueing behind them (and
