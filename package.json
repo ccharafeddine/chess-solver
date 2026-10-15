@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:web": "tsc -b && vite build --mode web",
+    "build:web": "tsc -b && vite build --mode web && node scripts/check-dist.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

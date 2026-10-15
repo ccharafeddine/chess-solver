@@ -29,3 +29,6 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+      - name: Web build (lite engine, 25 MiB file limit)
+        run: npm run build:web
