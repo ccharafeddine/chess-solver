@@ -1,0 +1,17 @@
+// Cloudflare Workers static assets: serves the web build in dist/ at chess.chafic.me.
+// Only wrangler reads this file; the desktop build ignores it.
+// Build the web bundle first, then: npx wrangler deploy
+{
+  "name": "chess-solver",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "chess.chafic.me",
+      "custom_domain": true
+    }
+  ]
+}

@@ -87,7 +87,10 @@ describe('brand', () => {
     for (const f of ['../assets/logo.svg', '../../public/favicon.svg', '../../public/icon-192.png', '../../public/icon-512.png', '../../public/og-image.png', '../../build/icon.png', '../../build/icon.ico'])
       expect(existsSync(new URL(f, import.meta.url)), f).toBe(true);
     const html = read('../../index.html');
-    const og = /property="og:image" content="\.\/([^"]+)"/.exec(html);
+    // Link previews need absolute URLs on the deployed domain.
+    expect(html).toContain('<meta property="og:url" content="https://chess.chafic.me/" />');
+    expect(html).toContain('<meta name="twitter:image" content="https://chess.chafic.me/og-image.png" />');
+    const og = /property="og:image" content="https:\/\/chess\.chafic\.me\/([^"]+)"/.exec(html);
     expect(og).not.toBeNull();
     expect(existsSync(new URL(`../../public/${og![1]}`, import.meta.url))).toBe(true);
   });
