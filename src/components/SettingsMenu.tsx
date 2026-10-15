@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { UpdateCheckState } from '../useUpdateCheck';
 import { THINK_TIME_CHOICES } from '../engine/stockfish';
+import { describeUpdate, updateCopy } from '../updateCopy';
 import { SKINS, SKIN_LABELS, type Mode, type Skin } from '../theme/theme';
 
 interface SettingsMenuProps {
@@ -25,18 +26,7 @@ const MODES: { id: Mode; label: string }[] = [
   { id: 'system', label: 'System' },
 ];
 
-function describeUpdate(state: UpdateCheckState): { message: string; url?: string; error?: boolean } | null {
-  if (state.phase === 'error') {
-    return state.manual ? { message: 'Could not reach GitHub. Check your connection.', error: true } : null;
-  }
-  if (state.phase !== 'done') return null;
-  const { status } = state;
-  if (status.state === 'update-available') {
-    return { message: `Update available: v${status.latestVersion}`, url: status.url };
-  }
-  if (status.state === 'up-to-date') return { message: `You're up to date (v${__APP_VERSION__})` };
-  return { message: 'No releases published yet.' };
-}
+const copy = updateCopy(__WEB_BUILD__);
 
 export function GearIcon() {
   return (
@@ -50,7 +40,7 @@ export function GearIcon() {
 /** The Settings dialog: appearance, engine, updates and about. Opened by the header gear. */
 export default function SettingsMenu(p: SettingsMenuProps) {
   const ref = useRef<HTMLDialogElement>(null);
-  const result = describeUpdate(p.updateState);
+  const result = describeUpdate(p.updateState, __APP_VERSION__, __WEB_BUILD__);
 
   useEffect(() => {
     const d = ref.current;
@@ -125,11 +115,11 @@ export default function SettingsMenu(p: SettingsMenuProps) {
       <h3>Updates</h3>
       <div className="mode-row">
         <button id="check-update" onClick={p.onCheckForUpdates} disabled={p.updateState.phase === 'checking'}>
-          {p.updateState.phase === 'checking' ? 'Checking…' : 'Check for updates'}
+          {p.updateState.phase === 'checking' ? 'Checking…' : copy.checkButton}
         </button>
         <label className="check">
           <input type="checkbox" checked={p.autoCheck} onChange={(e) => p.onAutoCheckChange(e.target.checked)} />
-          <span>Check automatically at startup</span>
+          <span>{copy.autoCheckLabel}</span>
         </label>
       </div>
       <p className={`update-msg${result?.error ? ' error' : ''}`} role="status">
@@ -137,7 +127,7 @@ export default function SettingsMenu(p: SettingsMenuProps) {
         {result?.url && (
           <>
             {' '}
-            <a href={result.url} target="_blank" rel="noopener noreferrer">Download</a>
+            <a href={result.url} target="_blank" rel="noopener noreferrer">{copy.linkLabel}</a>
           </>
         )}
         {!result && p.updateAvailable && 'An update is available.'}
@@ -149,7 +139,7 @@ export default function SettingsMenu(p: SettingsMenuProps) {
         {' · '}
         <a href="https://github.com/ccharafeddine/chess-solver" target="_blank" rel="noopener noreferrer">View on GitHub</a>
       </p>
-      <p className="muted">Analysis by Stockfish 18 (GPL-3.0). Piece set and artwork are original to this app.</p>
+      <p className="muted">{copy.engineCredit} Piece set and artwork are original to this app.</p>
     </dialog>
   );
 }

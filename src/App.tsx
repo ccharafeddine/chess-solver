@@ -25,6 +25,9 @@ import { uciToSan, isKingInCheck, detectGameEnd } from './engine/utils';
 import { detectTactics, type TacticalMotif } from './engine/tactics';
 import { lookupOpening } from './engine/openings';
 import { engineFailureMessage } from './engine/engineErrors';
+import { updateCopy } from './updateCopy';
+
+const UPDATE_COPY = updateCopy(__WEB_BUILD__);
 import {
   appendMove,
   emptyGame,
@@ -431,14 +434,12 @@ export default function App() {
 
       {updates.showBanner && updates.available && (
         <div className="update-banner" role="status">
-          <span>
-            Chess Solver <strong>v{updates.available.latestVersion}</strong> is available
-            (you have v{__APP_VERSION__}).
-          </span>
+          <span>{UPDATE_COPY.banner(updates.available.latestVersion ?? '', __APP_VERSION__)}</span>
           <span className="update-banner-actions">
             <a href={updates.available.url} target="_blank" rel="noopener noreferrer">
-              Download
+              {UPDATE_COPY.linkLabel}
             </a>
+            {__WEB_BUILD__ && <button onClick={() => window.location.reload()}>Reload</button>}
             <button onClick={updates.dismiss}>Dismiss</button>
           </span>
         </div>
