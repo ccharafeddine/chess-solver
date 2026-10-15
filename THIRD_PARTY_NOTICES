@@ -90,3 +90,11 @@ DM Sans and JetBrains Mono, packaged via @fontsource/dm-sans and
 @fontsource/jetbrains-mono.
 License: SIL Open Font License 1.1
 https://scripts.sil.org/OFL
+
+Bungee (the title face), bundled in src/assets/fonts with its licence
+(Bungee-OFL.txt). Copyright 2023 The Bungee Project Authors.
+Source: https://github.com/djrrb/Bungee
+License: SIL Open Font License 1.1
+
+The piece set, logo and icons are original artwork made for this app
+and are covered by this project's license.
