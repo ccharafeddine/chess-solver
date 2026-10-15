@@ -94,6 +94,7 @@ interface SearchRequest {
  */
 export class StockfishEngine {
   private worker: Worker | null = null;
+  private startError: Error | null = null;
   // Picked once per engine: threaded when the page has SharedArrayBuffer,
   // else the single-threaded web fallback (see engineFiles.ts).
   private engine: EngineChoice | null = chooseEngine(__WEB_BUILD__ ? 'web' : 'desktop', hasSharedMemory());
@@ -120,7 +121,7 @@ export class StockfishEngine {
 
   async init(): Promise<void> {
     await this.ensureWorker();
-    if (!this.ready) throw new Error('Stockfish engine failed to initialize');
+    if (!this.ready) throw this.startError ?? new Error('Stockfish engine failed to initialize');
   }
 
   analyze(fen: string, callback: AnalysisCallback, options: AnalyzeOptions = {}): void {
@@ -244,6 +245,7 @@ export class StockfishEngine {
         if (!this.destroyed) {
           console.error('[Stockfish] engine worker failed to start:', err);
         }
+        this.startError = err instanceof Error ? err : new Error(String(err));
         const req = this.pending;
         this.pending = null;
         req?.callback([], this.currentMeta(), true);
@@ -295,9 +297,19 @@ export class StockfishEngine {
         reject(new Error('Engine did not finish starting in time'));
       }, UCIOK_TIMEOUT_MS);
 
+      let started = false;
       worker.onerror = (e) => {
         console.warn('[Stockfish] Worker error:', e.message);
         e.preventDefault();
+        // A failure before the handshake finishes (script or wasm missing,
+        // wasm that will not compile) is final: report it now instead of
+        // waiting out the startup timeout.
+        if (started) return;
+        clearTimeout(timeoutId);
+        worker.removeEventListener('message', onHandshake);
+        try { worker.terminate(); } catch { /* ignore */ }
+        if (this.worker === worker) this.worker = null;
+        reject(new Error(`Engine failed to start${e.message ? `: ${e.message}` : ''}`));
       };
 
       const threads = engine.single ? 1 : pickThreadCount();
@@ -324,6 +336,7 @@ export class StockfishEngine {
         }
         worker.addEventListener('message', this.onMessage);
 
+        started = true;
         this.threads = threads;
         this.ready = true;
         console.log(`[Stockfish] Engine ready (Threads=${threads}, Hash=${HASH_MB}MB)`);

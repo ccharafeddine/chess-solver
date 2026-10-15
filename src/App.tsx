@@ -24,6 +24,7 @@ import {
 import { uciToSan, isKingInCheck, detectGameEnd } from './engine/utils';
 import { detectTactics, type TacticalMotif } from './engine/tactics';
 import { lookupOpening } from './engine/openings';
+import { engineFailureMessage } from './engine/engineErrors';
 import {
   appendMove,
   emptyGame,
@@ -167,12 +168,12 @@ export default function App() {
       .then(() => {
         if (!disposed) setEngineReady(true);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (disposed) return;
         setEngineFailed(true);
         setEngineWarning({
           fen: null,
-          message: 'The Stockfish engine failed to load. Restart the app to retry.',
+          message: engineFailureMessage(err, __WEB_BUILD__),
         });
       });
     return () => {
@@ -381,11 +382,17 @@ export default function App() {
   };
 
   const handleReanalyze = useCallback(() => {
+    // With no engine there is nothing to rerun: on the web, Retry reloads the
+    // page (a fresh start); on desktop the message says to restart the app.
+    if (engineFailed) {
+      if (__WEB_BUILD__) window.location.reload();
+      return;
+    }
     setEngineWarning(null);
     setAnalysisResult(null);
     setHighlightSquares(null);
     runAnalysis(fen);
-  }, [fen, runAnalysis]);
+  }, [fen, runAnalysis, engineFailed]);
 
   return (
     <div className="app">
