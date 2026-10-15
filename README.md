@@ -84,6 +84,20 @@ npm run build   # type-check + production build
 
 The same three steps run in CI on every push and pull request.
 
+## Web build (static hosting)
+
+```bash
+npm run build:web   # type-check, build dist/ for the web, check file sizes
+```
+
+The web build runs entirely in the browser and needs no server code, so any static host works (for example Cloudflare Pages with output directory `dist`). It differs from the desktop build in three ways:
+
+- **Engine:** Stockfish 18 *lite* (about 7 MB) instead of the full 113 MB build, which is over the 25 MiB per-file limit of hosts like Cloudflare Pages. Lite is a little weaker but still very strong.
+- **Threads:** `public/_headers` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`, so the page gets `SharedArrayBuffer` and the multi-threaded lite engine. On a host that ignores `_headers`, the page falls back to the single-threaded lite engine: slower, but analysis still works.
+- **Updates:** the update check links to what's new and suggests a reload instead of offering an installer.
+
+`scripts/check-dist.mjs` runs after the build and fails if any file in `dist/` is over 25 MiB. CI runs the web build too. If the engine can't start, the analysis panel says so: you can still set up positions and read games, and **Retry** reloads the page.
+
 ## Download
 
 Prebuilt binaries are on the [releases page](https://github.com/ccharafeddine/chess-solver/releases/latest):
