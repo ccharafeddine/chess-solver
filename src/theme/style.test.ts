@@ -83,6 +83,12 @@ describe('brand', () => {
     expect(settings).toContain('<dialog');
   });
 
+  it('keeps the update check, its settings and banner out of the web build', () => {
+    expect(settings).toMatch(/\{!__WEB_BUILD__ && \(\s*<>\s*<h3>Updates<\/h3>/);
+    expect(appTsx).toContain('useUpdateCheck(!__WEB_BUILD__)');
+    expect(appTsx).toContain('{!__WEB_BUILD__ && updates.showBanner');
+  });
+
   it('ships the logo, favicon, app icons and social card', () => {
     for (const f of ['../assets/logo.svg', '../../public/favicon.svg', '../../public/icon-192.png', '../../public/icon-512.png', '../../public/og-image.png', '../../build/icon.png', '../../build/icon.ico'])
       expect(existsSync(new URL(f, import.meta.url)), f).toBe(true);

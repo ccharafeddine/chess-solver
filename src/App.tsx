@@ -124,7 +124,8 @@ export default function App() {
     const saved = parseInt(localStorage.getItem('chess-solver-think-time') ?? '3', 10);
     return THINK_TIME_CHOICES.includes(saved) ? saved : 3;
   });
-  const updates = useUpdateCheck();
+  // The web build is always current, so only the desktop app checks for updates.
+  const updates = useUpdateCheck(!__WEB_BUILD__);
 
   const engineRef = useRef<StockfishEngine | null>(null);
 
@@ -432,7 +433,7 @@ export default function App() {
         onAutoCheckChange={updates.setAutoCheck}
       />
 
-      {updates.showBanner && updates.available && (
+      {!__WEB_BUILD__ && updates.showBanner && updates.available && (
         <div className="update-banner" role="status">
           <span>{UPDATE_COPY.banner(updates.available.latestVersion ?? '', __APP_VERSION__)}</span>
           <span className="update-banner-actions">

@@ -112,6 +112,8 @@ export default function SettingsMenu(p: SettingsMenuProps) {
       </div>
       <p className="muted">Longer is stronger. The best move so far shows right away either way.</p>
 
+      {!__WEB_BUILD__ && (
+        <>
       <h3>Updates</h3>
       <div className="mode-row">
         <button id="check-update" onClick={p.onCheckForUpdates} disabled={p.updateState.phase === 'checking'}>
@@ -132,6 +134,8 @@ export default function SettingsMenu(p: SettingsMenuProps) {
         )}
         {!result && p.updateAvailable && 'An update is available.'}
       </p>
+        </>
+      )}
 
       <h3>About</h3>
       <p className="about">

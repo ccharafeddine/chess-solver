@@ -17,8 +17,10 @@ const STARTUP_CHECK_DELAY_MS = 4000;
  * Update checking against GitHub releases: once automatically at startup
  * (unless turned off) and on demand from the settings menu. A found update
  * surfaces as a banner until dismissed for that specific version.
+ * Disabled (no automatic check, no banner) when `enabled` is false: the web
+ * build always serves the latest version, so it has nothing to check.
  */
-export function useUpdateCheck() {
+export function useUpdateCheck(enabled = true) {
   const [state, setState] = useState<UpdateCheckState>({ phase: 'idle' });
   const [autoCheck, setAutoCheckState] = useState(
     () => localStorage.getItem(AUTO_CHECK_KEY) !== 'off'
@@ -38,7 +40,7 @@ export function useUpdateCheck() {
   }, []);
 
   useEffect(() => {
-    if (!autoCheck) return;
+    if (!enabled || !autoCheck) return;
     const timer = setTimeout(() => runCheck(false), STARTUP_CHECK_DELAY_MS);
     return () => clearTimeout(timer);
     // Only the startup check is automatic; toggling the setting on later
@@ -64,7 +66,7 @@ export function useUpdateCheck() {
     state,
     available,
     // The settings menu still shows a dismissed update after a manual check.
-    showBanner: available !== null && available.latestVersion !== dismissedVersion,
+    showBanner: enabled && available !== null && available.latestVersion !== dismissedVersion,
     check: () => runCheck(true),
     dismiss,
     autoCheck,
